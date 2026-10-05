@@ -74,7 +74,10 @@ def test_route_present_and_authenticated(tmp_path, method, path, kwargs):
     client = _client_for(app)
     call = dict(kwargs)
     no_auth = getattr(client, method.lower())(path, **call)
-    assert no_auth.status_code == 401
+    if path == "/api/health":
+        assert no_auth.status_code == 200
+    else:
+        assert no_auth.status_code == 401
     authed_call = dict(kwargs)
     authed = getattr(client, method.lower())(path, headers=_auth_headers(raw), **authed_call)
     assert authed.status_code != 404

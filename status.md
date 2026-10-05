@@ -103,6 +103,23 @@ proven-incomplete files, re-dispatch missing.
   (a) NOW_MS test-wrong → set 1785844800000; (b) health-test conflict →
   API.md wins (health open), fix routes-spec 401 case for GET /api/health;
   (c) CLI missing --version → add flag reporting dist version.
+- 2026-10-05 ~20:4x UTC — All 5 reported, manager verified full suite:
+  FULL SUITE GREEN: 391 passed + 2 skipped (honest env skips) in 88s.
+  Fix agent: 3 minimal diffs (NOW_MS constant, health 401→200 case, CLI
+  --version). Review + probes found real trouble (below) — none fixed yet.
+  HIGH items for wave 2: (1) pyproject dependencies=[] — serve has no
+  fastapi/uvicorn/argon2 on install; (2) FTS 3-way schema drift
+  bootstrap/search.py/CLI; (3) reschedule_series stub returns success:true;
+  (4) voice transcribe stub (empty transcript); (5) briefing route stub
+  (never calls build_briefing); (6) buckets never seeded (init_db skips
+  seed_buckets); (7) alembic baseline no-op + CLI schema lacks
+  node_links/triggers/CHECK; (8) PUT /api/settings allows key-hash
+  overwrite bypassing renew. MED wave: UTC-hardcoded TZ paths, repo
+  skips minute-snap, tag-guard relies on trigger→500, CLI day filter
+  ignored, setup unwired, reminders never auto-created/fired, MCP tag
+  bypass + signature probe, series/checkout edge cases, termux.sh
+  host/guest var expansion + venv activation, backup.sh hot-cp.
+  Reports kept terse per user order (40-line caps, findings only).
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint

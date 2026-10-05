@@ -84,6 +84,24 @@ def _api_request(method: str, route: str, payload: dict | None = None,
         return True, {"raw": body}
 
 
+def _dist_version() -> str:
+    try:
+        from importlib import metadata as _md
+
+        return _md.version("chronos")
+    except Exception:
+        pass
+    try:
+        import chronos as _pkg  # noqa: PLC0415
+
+        v = getattr(_pkg, "__version__", None)
+        if v:
+            return str(v)
+    except Exception:
+        pass
+    return "2.0.0"
+
+
 def _fail(message: str) -> int:
     print(f"chronos: error: {message}", file=sys.stderr)
     return 1
@@ -482,6 +500,7 @@ def cmd_get(args) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chronos", description="Chronos CLI")
+    parser.add_argument("--version", action="version", version=_dist_version())
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_serve = sub.add_parser("serve", help="run the server")

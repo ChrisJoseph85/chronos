@@ -37,7 +37,7 @@ import pytest
 SPEC_INTENT = "docs/server/Chronos.md §5.3"
 SPEC_TOOLS = "docs/server/Chronos.md §5.5"
 
-NOW_MS = 1785288000000  # 2026-08-04T12:00:00Z
+NOW_MS = 1785844800000  # 2026-08-04T12:00:00Z
 TZ = "UTC"
 
 MUTATION_TOOLS = frozenset([
