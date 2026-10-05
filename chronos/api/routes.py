@@ -1189,13 +1189,32 @@ async def post_timer_stop(request: Request) -> JSONResponse:
         payload = await request.json()
     except Exception:
         payload = {}
+    payload = payload or {}
+    # v1.2 (spec §8): void=true discards elapsed (focus-shield bypass cost).
+    void = bool(payload.get("void", False))
+    source = str(payload.get("source") or "")
     conn = _connect(request)
     try:
         running = _running_timer(conn)
         if running is None:
             raise HTTPException(status_code=409, detail="no timer is running")
         now = _now_ms()
-        conn.execute("UPDATE timer_sessions SET ended_at = ? WHERE id = ?", (now, running["id"]))
+        if void:
+            conn.execute(
+                "UPDATE timer_sessions SET ended_at = ?, voided = 1 WHERE id = ?",
+                (now, running["id"]),
+            )
+            try:
+                conn.execute(
+                    "INSERT INTO audit (at, device_id, action, target, context)"
+                    " VALUES (?, ?, 'timer_void', ?, ?)",
+                    (now, source or None, running["id"],
+                     json.dumps({"source": source, "void": True})),
+                )
+            except sqlite3.DatabaseError:
+                pass
+        else:
+            conn.execute("UPDATE timer_sessions SET ended_at = ? WHERE id = ?", (now, running["id"]))
         conn.commit()
         row = conn.execute("SELECT * FROM timer_sessions WHERE id = ?", (running["id"],)).fetchone()
         body = _row_to_dict(row)
@@ -1232,7 +1251,8 @@ async def get_timer_summary(request: Request) -> JSONResponse:
         def _total(where: str, params: tuple) -> int:
             row = conn.execute(
                 "SELECT COALESCE(SUM(COALESCE(ended_at, ?) - started_at), 0) FROM timer_sessions"
-                " WHERE NOT (mode = 'pomodoro' AND phase = 'break') AND " + where, (now, *params),
+                " WHERE NOT (mode = 'pomodoro' AND phase = 'break')"
+                " AND COALESCE(voided, 0) = 0 AND " + where, (now, *params),
             ).fetchone()
             return int(row[0] or 0)
 
@@ -1280,6 +1300,61 @@ async def get_timer_summary(request: Request) -> JSONResponse:
             "descendant_total_ms": desc_total,
             "project_total_ms": project_total,
         })
+    finally:
+        conn.close()
+
+
+@router.get("/api/stats/breakdown")
+async def get_stats_breakdown(request: Request) -> JSONResponse:
+    """v1.2 (spec §8): per-direct-child totals for node_id in [from, to).
+
+    Voided sessions and pomodoro breaks excluded (same rule as summary).
+    """
+    await _require_auth(request)
+    node_id = request.query_params.get("node_id")
+    from_ms = _parse_ms(request.query_params.get("from"))
+    to_ms = _parse_ms(request.query_params.get("to"))
+    if from_ms is None or to_ms is None or to_ms <= from_ms:
+        raise HTTPException(status_code=422, detail="bad range: from/to required with from < to")
+    conn = _connect(request)
+    try:
+        node = conn.execute("SELECT id FROM nodes WHERE id = ?", (node_id,)).fetchone() \
+            if node_id else None
+        if node is None:
+            raise HTTPException(status_code=404, detail="unknown node")
+        children = conn.execute(
+            "SELECT id, title, kind FROM nodes WHERE parent_id = ? ORDER BY title",
+            (node_id,),
+        ).fetchall()
+        now = _now_ms()
+        out: list[dict] = []
+        for child in children:
+            descendants = {child["id"]}
+            frontier = [child["id"]]
+            while frontier:
+                current = frontier.pop()
+                for r in conn.execute(
+                    "SELECT id FROM nodes WHERE parent_id = ?", (current,)
+                ).fetchall():
+                    if r["id"] not in descendants:
+                        descendants.add(r["id"])
+                        frontier.append(r["id"])
+            placeholders = ",".join("?" for _ in descendants)
+            row = conn.execute(
+                "SELECT COALESCE(SUM(COALESCE(ended_at, ?) - started_at), 0)"
+                " FROM timer_sessions"
+                " WHERE NOT (mode = 'pomodoro' AND phase = 'break')"
+                " AND COALESCE(voided, 0) = 0 AND node_id IN (%s)"
+                " AND started_at < ? AND COALESCE(ended_at, ?) > ?" % placeholders,
+                (now, *tuple(descendants), to_ms, now, from_ms),
+            ).fetchone()
+            out.append({
+                "node_id": child["id"],
+                "title": child["title"],
+                "kind": child["kind"],
+                "total_ms": int(row[0] or 0),
+            })
+        return JSONResponse(out)
     finally:
         conn.close()
 

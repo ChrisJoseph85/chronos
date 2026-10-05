@@ -1,0 +1,17 @@
+R_DEF: Internal format may change without notice
+local
+drawable ic_launcher
+id nav_briefing
+id nav_calendar
+id nav_home
+id nav_projects
+id nav_settings
+id nav_stats
+id nav_tasks
+menu bottom_nav
+string app_name
+string server_down
+string server_too_old
+string stop_current_first
+string usage_rationale
+style Theme.Chronos

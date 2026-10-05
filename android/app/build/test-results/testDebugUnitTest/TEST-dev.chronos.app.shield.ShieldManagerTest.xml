@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.chronos.app.shield.ShieldManagerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-05T15:37:05" hostname="omarchy" time="0.006">
+  <properties/>
+  <testcase name="strictOffAlwaysKeeps" classname="dev.chronos.app.shield.ShieldManagerTest" time="0.002"/>
+  <testcase name="blockingRequiresRunningSession" classname="dev.chronos.app.shield.ShieldManagerTest" time="0.001"/>
+  <testcase name="stopAfterAttemptVoids" classname="dev.chronos.app.shield.ShieldManagerTest" time="0.001"/>
+  <testcase name="newSessionResetsCounter" classname="dev.chronos.app.shield.ShieldManagerTest" time="0.0"/>
+  <testcase name="cleanStopKeepsTime" classname="dev.chronos.app.shield.ShieldManagerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

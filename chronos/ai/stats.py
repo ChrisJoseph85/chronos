@@ -17,9 +17,20 @@ def _count(db, table):
 
 def _streak_days(db):
     try:
-        rows = db.execute(
-            "SELECT started_at FROM timer_sessions WHERE started_at IS NOT NULL"
-        ).fetchall()
+        cols = [r[1] for r in db.execute("PRAGMA table_info(timer_sessions)").fetchall()]
+        has_voided = "voided" in cols
+    except Exception:
+        has_voided = False
+    try:
+        if has_voided:
+            rows = db.execute(
+                "SELECT started_at FROM timer_sessions WHERE started_at IS NOT NULL"
+                " AND COALESCE(voided, 0) = 0"
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT started_at FROM timer_sessions WHERE started_at IS NOT NULL"
+            ).fetchall()
     except sqlite3.OperationalError:
         return 0
     except Exception:

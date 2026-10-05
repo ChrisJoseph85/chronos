@@ -86,3 +86,18 @@ POST   /api/providers/check-all -> {results:[{id, reachable, models[]}]} (one fa
 Setup order (§5.1): step 1 STT endpoint+model+keys, step 2 N text providers in order+keys, step 3 embeddings endpoint+model. Entry order (`position`) = failover order; `GET` returns `text` in failover order. Multiple keys per endpoint are tried round-robin before falling through.
 
 Write-only-key rule: key VALUES live in SQLite (`provider_keys.key_value`; server sends them outward; protect the DB file). The API NEVER returns a key value — entries carry `key_ids` + `key_count` only, and there is NO GET key-values route. No `.env` anywhere in this feature: `chronos setup` is a thin HTTP wrapper that prompts for server URL + instance key, walks the 3 steps over this API, and prints `key_id`s, never values.
+
+## v1.2 amendment 2026-10-05 (focus-shield void + breakdown)
+
+Additive only — no v1.1 contract changes.
+
+```
+POST /api/timer/stop {source, void?:bool} -> TimerSession (void defaults false)
+GET  /api/stats/breakdown?node_id=&from=ISO&to=ISO -> [{node_id, title, kind, total_ms}]
+```
+
+- Stop with `void:true` marks `TimerSession.voided=1`, writes one `audit` row (`action=timer_void`, `target`=session id, `context={source, void:true}`), and the response carries the `voided` flag. Default stop keeps time exactly as before.
+- Voided sessions are excluded from ALL totals: `GET /api/timer/summary` (`node_total_ms`, `descendant_total_ms`, `project_total_ms`), `GET /api/stats/breakdown`, and streaks. Pomodoro breaks stay excluded from summary/breakdown per the v1.1 rule. Unknown id on stop keeps today's 404/409 behaviour.
+- DDL: `timer_sessions.voided INTEGER NOT NULL DEFAULT 0` (`chronos.db.bootstrap`, single-sourced — CLI reads the same DDL). Existing DBs migrate on startup: `ALTER TABLE timer_sessions ADD COLUMN voided ...` when the column is missing; init is idempotent.
+- Breakdown: per DIRECT child of `node_id` (`{node_id, title, kind, total_ms}`), summed over `timer_sessions` joined through the parent walk (child + all descendants) overlapping the half-open window `[from, to)`; voided + pomodoro breaks excluded. `422` bad range (missing/invalid `from`/`to`, or `from >= to`); `404` unknown node. Same auth as everything else (401 without key).
+- Focus-shield trust note: the server honors the client's void flag and records it in audit — a self-discipline boundary (the void costs the session's elapsed time), not a multi-user guarantee.

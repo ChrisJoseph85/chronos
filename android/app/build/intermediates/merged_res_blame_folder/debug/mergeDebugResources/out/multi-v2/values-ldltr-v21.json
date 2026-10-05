@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "dev.chronos.app-mergeDebugResources-34:/values-ldltr-v21/values-ldltr-v21.xml",
+            "map": [
+                {
+                    "source": "/home/cj/.gradle/caches/8.10.2/transforms/50cfa5da41c18f8b83cf15d45483367c/transformed/appcompat-1.7.0/res/values-ldltr-v21/values-ldltr-v21.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "112",
+                        "endOffsets": "163"
+                    }
+                }
+            ]
+        }
+    ]
+}

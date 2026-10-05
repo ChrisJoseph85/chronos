@@ -1,0 +1,186 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="dev.chronos.app.debug"
+4    android:versionCode="1"
+5    android:versionName="1.2.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="29"
+9        android:targetSdkVersion="36" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:4:5-67
+11-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:4:22-64
+12    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+12-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:5:5-77
+12-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:5:22-74
+13    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+13-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:6:5-89
+13-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:6:22-86
+14    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+14-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:7:5-77
+14-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:7:22-74
+15    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+15-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:8:5-71
+15-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:8:22-68
+16    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+16-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:9:5-78
+16-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:9:22-75
+17    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+17-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:10:5-77
+17-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:10:22-74
+18
+19    <permission
+19-->[androidx.core:core:1.15.0] /home/cj/.gradle/caches/8.10.2/transforms/e61c856e08c133120794b05552e069ab/transformed/core-1.15.0/AndroidManifest.xml:22:5-24:47
+20        android:name="dev.chronos.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+20-->[androidx.core:core:1.15.0] /home/cj/.gradle/caches/8.10.2/transforms/e61c856e08c133120794b05552e069ab/transformed/core-1.15.0/AndroidManifest.xml:23:9-81
+21        android:protectionLevel="signature" />
+21-->[androidx.core:core:1.15.0] /home/cj/.gradle/caches/8.10.2/transforms/e61c856e08c133120794b05552e069ab/transformed/core-1.15.0/AndroidManifest.xml:24:9-44
+22
+23    <uses-permission android:name="dev.chronos.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+23-->[androidx.core:core:1.15.0] /home/cj/.gradle/caches/8.10.2/transforms/e61c856e08c133120794b05552e069ab/transformed/core-1.15.0/AndroidManifest.xml:26:5-97
+23-->[androidx.core:core:1.15.0] /home/cj/.gradle/caches/8.10.2/transforms/e61c856e08c133120794b05552e069ab/transformed/core-1.15.0/AndroidManifest.xml:26:22-94
+24
+25    <application
+25-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:12:5-48:19
+26        android:name="dev.chronos.app.ChronosApp"
+26-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:13:9-35
+27        android:allowBackup="false"
+27-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:14:9-36
+28        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+28-->[androidx.core:core:1.15.0] /home/cj/.gradle/caches/8.10.2/transforms/e61c856e08c133120794b05552e069ab/transformed/core-1.15.0/AndroidManifest.xml:28:18-86
+29        android:debuggable="true"
+30        android:extractNativeLibs="false"
+31        android:icon="@drawable/ic_launcher"
+31-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:15:9-45
+32        android:label="Chronos"
+32-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:16:9-32
+33        android:theme="@style/Theme.Chronos" >
+33-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:17:9-45
+34        <activity
+34-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:18:9-25:20
+35            android:name="dev.chronos.app.ui.MainActivity"
+35-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:19:13-44
+36            android:exported="true" >
+36-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:20:13-36
+37            <intent-filter>
+37-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:21:13-24:29
+38                <action android:name="android.intent.action.MAIN" />
+38-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:22:17-69
+38-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:22:25-66
+39
+40                <category android:name="android.intent.category.LAUNCHER" />
+40-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:23:17-77
+40-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:23:27-74
+41            </intent-filter>
+42        </activity>
+43        <activity
+43-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:26:9-30:43
+44            android:name="dev.chronos.app.shield.ShieldBlockActivity"
+44-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:27:13-55
+45            android:exported="false"
+45-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:28:13-37
+46            android:showOnLockScreen="true"
+46-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:29:13-44
+47            android:turnScreenOn="true" />
+47-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:30:13-40
+48
+49        <service
+49-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:32:9-39:19
+50            android:name="dev.chronos.app.timer.TimerService"
+50-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:33:13-47
+51            android:exported="false"
+51-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:34:13-37
+52            android:foregroundServiceType="specialUse" >
+52-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:35:13-55
+53            <property
+53-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:36:13-38:64
+54                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+54-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:37:17-76
+55                android:value="timer tick for focus session" />
+55-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:38:17-61
+56        </service>
+57        <service
+57-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:40:9-47:19
+58            android:name="dev.chronos.app.shield.AppWatchService"
+58-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:41:13-51
+59            android:exported="false"
+59-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:42:13-37
+60            android:foregroundServiceType="specialUse" >
+60-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:43:13-55
+61            <property
+61-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:36:13-38:64
+62                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+62-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:37:17-76
+63                android:value="blocked-app tripwire while a focus session runs" />
+63-->/home/cj/Chronos/android/app/src/main/AndroidManifest.xml:38:17-61
+64        </service>
+65
+66        <provider
+66-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+67            android:name="androidx.startup.InitializationProvider"
+67-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+68            android:authorities="dev.chronos.app.debug.androidx-startup"
+68-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+69            android:exported="false" >
+69-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+70            <meta-data
+70-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+71                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+71-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+72                android:value="androidx.startup" />
+72-->[androidx.emoji2:emoji2:1.3.0] /home/cj/.gradle/caches/8.10.2/transforms/3186bd613723ef1551d49e1aa121b7ab/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+73            <meta-data
+73-->[androidx.lifecycle:lifecycle-process:2.8.6] /home/cj/.gradle/caches/8.10.2/transforms/6be4bb1cf11ae7b10a5958c5a81524eb/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:29:13-31:52
+74                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+74-->[androidx.lifecycle:lifecycle-process:2.8.6] /home/cj/.gradle/caches/8.10.2/transforms/6be4bb1cf11ae7b10a5958c5a81524eb/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:30:17-78
+75                android:value="androidx.startup" />
+75-->[androidx.lifecycle:lifecycle-process:2.8.6] /home/cj/.gradle/caches/8.10.2/transforms/6be4bb1cf11ae7b10a5958c5a81524eb/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:31:17-49
+76            <meta-data
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+77                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+77-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+78                android:value="androidx.startup" />
+78-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+79        </provider>
+80
+81        <receiver
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+82            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+83            android:directBootAware="false"
+83-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+84            android:enabled="true"
+84-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+85            android:exported="true"
+85-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+86            android:permission="android.permission.DUMP" >
+86-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+87            <intent-filter>
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+88                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+89            </intent-filter>
+90            <intent-filter>
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+91                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+92            </intent-filter>
+93            <intent-filter>
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+94                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+94-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+94-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+95            </intent-filter>
+96            <intent-filter>
+96-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+97                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+97-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+97-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/cj/.gradle/caches/8.10.2/transforms/6d815b4293317f6f1def50599a931b8d/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+98            </intent-filter>
+99        </receiver>
+100    </application>
+101
+102</manifest>

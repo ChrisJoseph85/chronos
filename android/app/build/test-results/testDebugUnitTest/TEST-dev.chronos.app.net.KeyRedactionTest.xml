@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.chronos.app.net.KeyRedactionTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-05T15:37:05" hostname="omarchy" time="0.068">
+  <properties/>
+  <testcase name="authHeaderPresentOnAllRoutes" classname="dev.chronos.app.net.KeyRedactionTest" time="0.061"/>
+  <testcase name="voidFlagSerializedOnlyWhenTrue" classname="dev.chronos.app.net.KeyRedactionTest" time="0.004"/>
+  <testcase name="wsUrlSchemeMapped" classname="dev.chronos.app.net.KeyRedactionTest" time="0.0"/>
+  <testcase name="redactedLogNeverContainsKey" classname="dev.chronos.app.net.KeyRedactionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

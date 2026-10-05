@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "dev.chronos.app-debug-36:/drawable_ic_launcher.xml.flat",
+        "source": "dev.chronos.app-main-38:/drawable/ic_launcher.xml"
+    },
+    {
+        "merged": "/home/cj/.gradle/daemon/8.10.2/dev.chronos.app-debug-36:/menu_bottom_nav.xml.flat",
+        "source": "/home/cj/.gradle/daemon/8.10.2/dev.chronos.app-main-38:/menu/bottom_nav.xml"
+    }
+]

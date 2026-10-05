@@ -1,0 +1,19 @@
+name: android
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - name: Install platform + build-tools
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Assemble + unit tests
+        working-directory: android
+        run: ./gradlew assembleDebug testDebugUnitTest --stacktrace

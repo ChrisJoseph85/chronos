@@ -106,7 +106,8 @@ DDL_STATEMENTS: list[str] = [
     mode       TEXT NOT NULL DEFAULT 'stopwatch',
     target_ms  INTEGER,
     phase      TEXT,
-    cycle      INTEGER NOT NULL DEFAULT 1
+    cycle      INTEGER NOT NULL DEFAULT 1,
+    voided     INTEGER NOT NULL DEFAULT 0
 )""",
     "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
     """CREATE TABLE IF NOT EXISTS audit (
@@ -184,6 +185,19 @@ SCHEMA = DDL_STATEMENTS
 BASE_DDL = DDL_STATEMENTS
 
 
+def _ensure_timer_voided_column(conn) -> None:
+    """v1.2 migration: add timer_sessions.voided when missing (idempotent)."""
+    try:
+        cols = [row[1] for row in conn.execute("PRAGMA table_info(timer_sessions)").fetchall()]
+    except Exception:
+        return
+    if cols and "voided" not in cols:
+        try:
+            conn.execute("ALTER TABLE timer_sessions ADD COLUMN voided INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
+
+
 def init_db(conn) -> None:
     """Execute the real DDL on a sqlite3 connection (vec0-tolerant)."""
     try:
@@ -199,4 +213,5 @@ def init_db(conn) -> None:
                 if "vec0" in str(exc).lower() or "no such module" in str(exc).lower():
                     continue
             raise
+    _ensure_timer_voided_column(conn)
     conn.commit()

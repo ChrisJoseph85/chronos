@@ -180,11 +180,66 @@ class Repo:
         self.conn.commit()
         return {"id": tid, "mode": mode, "target_ms": target_ms}
 
-    def stop_timer(self, timer_id: str) -> None:
-        self.conn.execute(
-            "UPDATE timer_sessions SET ended_at = ? WHERE id = ?", (_now(), timer_id)
-        )
+    def stop_timer(self, timer_id: str, void: bool = False) -> None:
+        if void:
+            try:
+                self.conn.execute(
+                    "UPDATE timer_sessions SET ended_at = ?, voided = 1 WHERE id = ?",
+                    (_now(), timer_id),
+                )
+            except sqlite3.OperationalError:
+                # Pre-migration DB without voided column: plain stop.
+                self.conn.execute(
+                    "UPDATE timer_sessions SET ended_at = ? WHERE id = ?", (_now(), timer_id)
+                )
+        else:
+            self.conn.execute(
+                "UPDATE timer_sessions SET ended_at = ? WHERE id = ?", (_now(), timer_id)
+            )
         self.conn.commit()
+
+    def void_timer(self, timer_id: str) -> None:
+        """Mark a session voided (v1.2, spec §8): excluded from all totals."""
+        self.stop_timer(timer_id, void=True)
+
+    def timer_summary_ms(self, node_ids: list[str] | None = None) -> int:
+        """Total ms over sessions, voided + pomodoro breaks excluded (v1.2)."""
+        try:
+            if node_ids:
+                placeholders = ",".join("?" for _ in node_ids)
+                row = self.conn.execute(
+                    "SELECT COALESCE(SUM(COALESCE(ended_at, ?) - started_at), 0)"
+                    " FROM timer_sessions WHERE NOT (mode = 'pomodoro' AND phase = 'break')"
+                    " AND COALESCE(voided, 0) = 0 AND node_id IN (%s)" % placeholders,
+                    (_now(), *node_ids),
+                ).fetchone()
+            else:
+                row = self.conn.execute(
+                    "SELECT COALESCE(SUM(COALESCE(ended_at, ?) - started_at), 0)"
+                    " FROM timer_sessions WHERE NOT (mode = 'pomodoro' AND phase = 'break')"
+                    " AND COALESCE(voided, 0) = 0",
+                    (_now(),),
+                ).fetchone()
+            return int(row[0] or 0)
+        except sqlite3.OperationalError:
+            return 0
+
+    def timer_breakdown_ms(self, node_ids: list[str], start_ms: int, end_ms: int,
+                           now: int | None = None) -> int:
+        """Total ms for a node set in [start_ms, end_ms), voided/breaks excluded (v1.2)."""
+        now = _now() if now is None else now
+        try:
+            placeholders = ",".join("?" for _ in node_ids)
+            row = self.conn.execute(
+                "SELECT COALESCE(SUM(COALESCE(ended_at, ?) - started_at), 0)"
+                " FROM timer_sessions WHERE NOT (mode = 'pomodoro' AND phase = 'break')"
+                " AND COALESCE(voided, 0) = 0 AND node_id IN (%s)"
+                " AND started_at < ? AND COALESCE(ended_at, ?) > ?" % placeholders,
+                (now, *node_ids, end_ms, now, start_ms),
+            ).fetchone()
+            return int(row[0] or 0)
+        except sqlite3.OperationalError:
+            return 0
 
     def reindex_fts(self) -> None:
         try:
