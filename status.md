@@ -98,6 +98,11 @@ proven-incomplete files, re-dispatch missing.
     Fails = wrong-NOW_MS, health-401-vs-open, 2× CLI --version missing.
     NOTE: help-lists-commands now PASSES (was failing before — confirm in
     fix loop); smoke-fixture errors absent under uv run.
+- 2026-10-05 ~20:3x UTC — User order: fix the 4 known failures + full code
+  review + 3 integration-risk probes, jointly (5 agents). Rulings carried:
+  (a) NOW_MS test-wrong → set 1785844800000; (b) health-test conflict →
+  API.md wins (health open), fix routes-spec 401 case for GET /api/health;
+  (c) CLI missing --version → add flag reporting dist version.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
