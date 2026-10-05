@@ -46,6 +46,27 @@ proven-incomplete files, re-dispatch missing.
   work), rewrite Phase 3 from scratch + 5 verify agents (phases 1,2,4,5,6)
   jointly. Phase-3 files DELETED: chronos/api/, chronos/realtime/,
   scripts/smoke.sh (pycache went with dirs). Nothing else touched.
+- 2026-10-05 ~19:5x UTC — All 6 reported (each stopped):
+  - Phase 3 rewrite: DONE. Own files recreated. Self-reports 168 passed
+    (phase_3 + phase_4 suites) + `./scripts/smoke.sh 8099` OK. NEW TICKET:
+    test_routes_spec demands 401-no-key on GET /api/health, contradicting
+    API.md ("ONLY open route") + test_auth_spec (200 open) — spec-compliant
+    behavior kept (open); needs test-side ruling.
+  - Verify Ph1: 84/84 pass. Verify Ph5: 43/43 pass.
+  - Verify Ph2: 67/68 — only the known wrong-NOW_MS failure, signature
+    matches ruling exactly. No new failure.
+  - Verify Ph4: 13 seam-blocked (ran while chronos/api absent; ModuleNotFound,
+    not 404). Re-run now that Phase 3 landed.
+  - Verify Ph6: 17 passed + 4 failed + 2 skipped. F1–F3 code-wrong in CLI:
+    no `--version` flag, only `{serve}` registered (6 commands missing).
+    F4 seam-blocked (smoke.sh absent at its run time — since restored).
+- 2026-10-05 ~20:0x UTC — User orders: (a) Termux must NOT use Termux python
+  directly (version drift); must ensure proot-distro `chronos` exists (install
+  if missing), do everything inside it via uv + pinned python 3.14.7.
+  (b) Merge old phases 1+2 into a new Phase 1 with clean naming/docs.
+  Pinned version for brief: 3.14.7 (both interpreters; requires-python >=3.14).
+  Queued fix-loop (after these two): Ph2 NOW_MS constant, Ph3 health-test
+  conflict, Ph4 CLI --version + 6 missing commands, Ph4/Ph6 re-verify.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
