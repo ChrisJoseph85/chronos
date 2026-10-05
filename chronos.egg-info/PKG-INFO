@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: chronos
+Version: 2.0.0
+Summary: Chronos backend — REST + WebSocket + MCP, no web UI
+License: MIT
+Requires-Python: >=3.14
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ruff; extra == "dev"

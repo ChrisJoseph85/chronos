@@ -22,7 +22,30 @@ proven-incomplete files, re-dispatch missing.
   - Disk collect: 387 total (321 + 43 + 23) — matches. NOTHING deleted, phases 1–4 untouched.
   - Gate Batch 1: PASS — all 6 suites exist and are red-as-expected (failing-first).
 
-## Current snapshot (Batch 1 complete, pre-Batch 2 code dispatch)
+## Current snapshot (Batch 2 code landed 5/6, phase 3 killed)
+
+- 2026-10-05 ~19:3x UTC — 6 code agents dispatched simultaneously (user override).
+  Results (each stopped after reporting):
+  - Phase 1 code: DONE. 84/84 pass. Files: contracts/, db/{engine,bootstrap,orm,buckets,repo}.py, core/scheduling.py, alembic/. ruff unavailable in env (noted, not claimed).
+  - Phase 2 code: DONE 67/68. 1 failure = test-wrong (see ruling below). Extra files beyond owned list: ai/providers/defaults.py, ai/setup.py, __init__.py shims (accepted, unowned gray area). Out-of-ownership write: appended ticket to docs/server/tickets.md (KEPT — well-formed, valuable).
+  - Phase 3 code: KILLED by user accident mid-run (task cancelled). Partial files found on disk: chronos/api/, chronos/realtime/, scripts/smoke.sh.
+  - Phase 4 code: DONE 26/36 (10 fails = POST /mcp 404: Phase 3 never mounted /mcp — seam, resolves with Phase 3 rewrite). Own router proven standalone (auth 200/401, 422s, audit rows).
+  - Phase 5 code: DONE. 43/43 pass.
+  - Phase 6 code: DONE 15 passed + 2 skipped + 6 failed (fails = /mcp + CLI missing at its run time — simultaneous-run artifact; CLI has since landed).
+- MANAGER RULING (Phase 2 ticket, test-wrong): NOW_MS 1785288000000 decodes to
+  2026-07-29T01:20Z, not the commented 2026-08-04T12:00Z (verified by manager
+  run above; correct constant = 1785844800000). Code is spec-correct (§5.3).
+  Fix (change test constant) queued for fix loop, mirrored to decisions.md then.
+- PHASE 6 TERMUX AUDIT (user asked, manager checked 2026-10-05): correct as-is,
+  NO change. termux.sh parses (bash -n OK), wake-lock before serve, 274 MB
+  download with --progress-bar + resume, doctor honestly reports "is Termux: no"
+  on this host, on-device test skips with reason, docs/termux.md splits
+  Verified/Not-verified. Nothing here really runs on Termux — structural proof
+  only, as required. No file touched.
+- 2026-10-05 ~19:4x UTC — User order: rm Phase-3 partial files (killed agent's
+  work), rewrite Phase 3 from scratch + 5 verify agents (phases 1,2,4,5,6)
+  jointly. Phase-3 files DELETED: chronos/api/, chronos/realtime/,
+  scripts/smoke.sh (pycache went with dirs). Nothing else touched.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint

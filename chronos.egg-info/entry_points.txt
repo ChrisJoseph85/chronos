@@ -1,0 +1,2 @@
+[console_scripts]
+chronos = chronos.cli:main

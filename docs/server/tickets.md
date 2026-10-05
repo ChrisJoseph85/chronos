@@ -67,3 +67,28 @@ forwards it to the user when it turns on product intent rather than correctness.
 - If the **spec itself is ambiguous**, say so explicitly and escalate — do not
   guess, and do not let a majority vote invent product intent. That goes to the
   user.
+
+---
+
+```
+TICKET — phase 2, part 5.3
+Rung: proposer
+
+1. DISPUTED (one sentence)
+   tests/phase_2/test_intent_verify_spec.py pins NOW_MS = 1785288000000 with comment "2026-08-04T12:00:00Z", but that number decodes to 2026-07-29T01:20:00Z, so test_verify_pass_corrects_dates_offsets_slots expects "tomorrow" = 2026-08-05, six days after the now_ms it passes in.
+
+2. POSITIONS
+   Test agent asserts: verify_calls("Schedule math review tomorrow at 4pm for 45 minutes", proposed start 2026-08-06, now_ms=1785288000000) must return start "2026-08-05T16:00:00+00:00", end "2026-08-05T16:45:00+00:00"   [spec: §5.3]
+   Code agent asserts: "tomorrow" resolved against the passed now_ms (2026-07-29T01:20Z) is 2026-07-30, so the expected 2026-08-05 is unreachable under any correct reading of §5.3; the test's numeric NOW_MS contradicts its own comment and expectation   [spec: §5.3]
+
+3. ALREADY TRIED
+   Rung 0 (self-check): verified decode with `datetime.fromtimestamp(1785288000000/1000, tz=utc)` → 2026-07-29T01:20:00+00:00; 2026-08-04T12:00:00Z would be 1785844800000. Code produces exactly the expected output when now_ms is the commented date (Aug 4 → tomorrow Aug 5 16:00 + 45 min). No code-side fix exists that is both spec-correct and passes: hardcoding 2026-08-05 would violate §5.3 ("audits against the user's actual words"). Cannot edit the test (not my file).
+
+4. EVIDENCE
+   Failing assertion: `assert args["start"] == "2026-08-05T16:00:00+00:00"`
+   Real output: `AssertionError: ... wrong date must be corrected, got '2026-07-30T16:00:00+00:00'`
+   Location: tests/phase_2/test_intent_verify_spec.py:164
+
+5. MY READING
+   Test-wrong: single wrong constant. Test author's comment and expected values agree with each other (now = Aug 4, tomorrow = Aug 5); only the numeric NOW_MS is off by ~6.4 days. Request Mediator ruling to correct NOW_MS to 1785844800000 (or correct the expectation to 2026-07-30). Code implementation is spec-correct as-is; 67/68 phase-2 tests pass.
+```

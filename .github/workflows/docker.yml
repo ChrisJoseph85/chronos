@@ -1,0 +1,13 @@
+name: docker
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: docker build -t chronos .
+      - run: docker compose up -d --build
+      - run: curl -fsS http://127.0.0.1:8080/api/health

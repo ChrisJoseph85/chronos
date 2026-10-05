@@ -1,0 +1,23 @@
+[project]
+name = "chronos"
+version = "2.0.0"
+description = "Chronos backend — REST + WebSocket + MCP, no web UI"
+requires-python = ">=3.14"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+chronos = "chronos.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["chronos*"]
+
+[tool.ruff]
+target-version = "py314"
