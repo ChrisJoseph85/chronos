@@ -125,6 +125,16 @@ proven-incomplete files, re-dispatch missing.
   (add/delete by id, never viewed/edited). Dynamic DB store, no .env.
   API.md version bump. Then: manager starts server, verifier AI checks all
   via API with instance key.
+- 2026-10-05 ~21:0x UTC — Provider-mgmt DONE + LIVE-VERIFIED:
+  - Build: registry.py (CRUD, write-only keys, chain builder, /models
+    discovery), 8 routes, setup→HTTP wrapper, providers+provider_keys DDL,
+    12 new tests green, API.md v1.1 amendment. Suite now 405 collected.
+  - Live: server on :8080 (throwaway DB, since deleted) exercised by
+    verifier AI — 22/22 PASS: auth 401s, full CRUD, keys never leak
+    (string-searched raw JSON), reorder=failover, check graceful
+    unreachable:false, check-all isolates, active switch, cascade 404,
+    say→event, timer 409, briefing 200, PUT-key→422.
+  - Server torn down, /tmp/prov-check.db removed. No .env created anywhere.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
