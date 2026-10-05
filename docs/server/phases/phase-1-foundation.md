@@ -27,6 +27,15 @@
 > superseded by this file. Test suite merged: `tests/phase_1/*` (285 tests)
 > + `tests/phase_4/*` renamed with `test_if_*` prefix (old phase_4 36 tests)
 > = 321 tests total. Old phase numbers 5–6 are unchanged.
+>
+> **MIGRATION NOTE (round 4, 2026-10-05, reason: maintainability):** This
+> document additionally folds old `phase-5-features.md` (old Phase 5, parts
+> 5.1–5.6) into this Phase 1 as new parts 1.23–1.28. Old → new mapping:
+> 5.1→1.23 (notify), 5.2→1.24 (search), 5.3→1.25 (briefings), 5.4→1.26
+> (stats), 5.5→1.27 (audit), 5.6→1.28 (export). Old doc
+> `phase-5-features.md` is superseded by this file. Test suite merged:
+> `tests/phase_1/*` (321 tests) + `tests/phase_5/*` renamed with
+> `test_feat_*` prefix (old phase_5 43 tests) = 364 tests total.
 
 **Runs in parallel with phases 3–6.** Owns the frozen surface everything else
 builds against, so this phase's **proposal stage gates the whole project**.
@@ -63,6 +72,12 @@ Spec: `docs/Chronos.md` §4 (data model), §4.8 (vector + full-text search),
 | 1.20 smoke script | 3.6 | `scripts/smoke.sh` | one code agent |
 | 1.21 CLI | 4.4 | `chronos/cli/` | one code agent |
 | 1.22 MCP | 4.5 | `chronos/mcp/` | one code agent |
+| 1.23 notify + reminders | 5.1 | `chronos/notify/` | one code agent |
+| 1.24 search | 5.2 | `chronos/db/search.py` | one code agent |
+| 1.25 briefings + budget | 5.3 | `chronos/ai/briefings.py` | one code agent |
+| 1.26 stats | 5.4 | `chronos/ai/stats.py` | one code agent |
+| 1.27 audit viewer | 5.5 | `chronos/db/audit.py` | one code agent |
+| 1.28 CSV export | 5.6 | `chronos/ai/export.py` | one code agent |
 
 Part 1.1 must land before 1.2–1.14 start. Parts 1.2–1.6 can run in parallel
 with each other; parts 1.7–1.10 are independent of 1.11–1.14; all within the
@@ -135,6 +150,17 @@ Cite spec § stays intact in the merged test files.
 - [ ] `db-upgrade` completes and creates the schema in the `CHRONOS_DB` file
 - [ ] the MCP tool list matches the contracts exactly; no tool stubbed
 - [ ] unauthenticated MCP calls are rejected; every call is audited
+- [ ] one definition of `DEFAULT_REMINDER_OFFSETS_MIN`
+- [ ] due reminders fire; cancelled ones do not
+- [ ] search degrades without raising; scores absolute; bm25 kept distinct
+- [ ] nodes are indexed on create/update/delete; an absent FTS table never breaks a write
+- [ ] a duplicate is caught semantically, not by title match
+- [ ] tags and nodes are reused, never duplicated
+- [ ] the briefing varies with its data
+- [ ] **the clarification budget survives a process restart**
+- [ ] `cost_usd` is non-zero for a known price and `None` for an unknown one
+- [ ] the audit log filters and is read-only
+- [ ] a CSV export opens cleanly and has no fake zeros
 - [ ] full suite green
 - [ ] per-part scratch tests and probe scripts deleted; the phase's spec tests kept
       (`manager.md` §10)
@@ -162,7 +188,7 @@ Proposed new ownership row for merged Phase 1:
 
 | Phase | Test files | Code files |
 |---|---|---|
-| 1 Foundation | `tests/phase_1/*` | `chronos/contracts/` `chronos/db/` `chronos/core/` `chronos/ai/` minus `briefings/`/`stats`/`export` which stay Phase 5 `chronos/api/` `chronos/realtime/` `scripts/smoke.sh` `chronos/cli/` `chronos/mcp/` |
+| 1 Foundation | `tests/phase_1/*` | `chronos/contracts/` `chronos/db/` `chronos/core/` `chronos/ai/` `chronos/notify/` `chronos/db/search.py` `chronos/db/audit.py` `chronos/ai/briefings.py` `chronos/ai/stats.py` `chronos/ai/export.py` `chronos/api/` `chronos/realtime/` `scripts/smoke.sh` `chronos/cli/` `chronos/mcp/` |
 
 Note: old phase numbers 3–6 are unchanged. Old `tests/phase_2/` is deleted
 (contents moved to `tests/phase_1/test_ai_*`). Old docs `phase-1-core.md` and
@@ -178,3 +204,15 @@ Note (round 3, 2026-10-05): old `tests/phase_4/` is deleted (contents moved to
 `test_mcp_spec.py` → `test_if_mcp_spec.py`, byte-identical). Old doc
 `phase-4-interfaces.md` is superseded by `phase-1-foundation.md` (old Phase 4
 parts 4.4→1.21 CLI, 4.5→1.22 MCP). Old phase numbers 5–6 are unchanged.
+
+Note (round 4, 2026-10-05): old `tests/phase_5/` is deleted (contents moved to
+`tests/phase_1/test_feat_*`: `test_notify_spec.py` →
+`test_feat_notify_spec.py`, `test_search_spec.py` →
+`test_feat_search_spec.py`, `test_briefing_spec.py` →
+`test_feat_briefing_spec.py`, `test_stats_audit_export_spec.py` →
+`test_feat_stats_audit_export_spec.py`, byte-identical). Old doc
+`phase-5-features.md` is superseded by `phase-1-foundation.md` (old Phase 5
+parts 5.1→1.23 notify `chronos/notify/`, 5.2→1.24 search
+`chronos/db/search.py`, 5.3→1.25 briefings `chronos/ai/briefings.py`,
+5.4→1.26 stats `chronos/ai/stats.py`, 5.5→1.27 audit `chronos/db/audit.py`,
+5.6→1.28 export `chronos/ai/export.py`). 321+43=364 tests total.
