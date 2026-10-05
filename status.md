@@ -24,6 +24,10 @@ proven-incomplete files, re-dispatch missing.
 
 ## Current snapshot (Batch 1 complete, pre-Batch 2 code dispatch)
 
+- 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
+  (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
+  dispatch. Manager holds all follow-up until all 6 report.
+
 - tests/phase_1: 4 files, 84 tests — KEEP
 - tests/phase_2: 5 files, 68 tests — KEEP
 - tests/phase_3: 4 files, 133 tests — KEEP
