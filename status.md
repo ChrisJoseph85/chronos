@@ -85,6 +85,19 @@ proven-incomplete files, re-dispatch missing.
   - Disk collect now: 393 (was 387; +6 new Termux pinning tests).
   - MANAGER-PLAN.md ownership table NOT yet updated (frozen doc — needs your
     explicit go to amend + mirror Ph2 ruling to decisions.md).
+- 2026-10-05 ~20:2x UTC — Fold-all-combined per user order (sequential, one
+  merge agent per round, snapshot after each; all moves byte-identical):
+  - Round 2: phase_3 → phase_1 as test_srv_* (285 collect ✅ b4337df).
+  - Round 3: phase_4 → phase_1 as test_if_* (321 collect ✅ d5c8ea6;
+    run 319 passed + 2 known fails).
+  - Round 4: phase_5 → phase_1 as test_feat_* (364 collect ✅ d377f51).
+  - Round 5 FINAL: phase_6 → phase_1 as test_ops_* (393 collect ✅ 75b29df).
+  - NOW: tests/ = phase_1 only (22 files); phases/ = phase-1-foundation.md
+    only (parts 1.1–1.34 + 5 migration notes + ownership-proposal).
+  - Final full run (uv run, ~79s): 4 failed + 387 passed + 2 skipped.
+    Fails = wrong-NOW_MS, health-401-vs-open, 2× CLI --version missing.
+    NOTE: help-lists-commands now PASSES (was failing before — confirm in
+    fix loop); smoke-fixture errors absent under uv run.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
