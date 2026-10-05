@@ -19,6 +19,14 @@
 > `tests/phase_1/*` (152 tests) + `tests/phase_3/*` renamed with `test_srv_*`
 > prefix (old phase_3 133 tests) = 285 tests total. Old phase numbers 4–6
 > are unchanged.
+>
+> **MIGRATION NOTE (round 3, 2026-10-05, reason: maintainability):** This
+> document additionally folds old `phase-4-interfaces.md` (old Phase 4, parts
+> 4.4–4.5) into this Phase 1 as new parts 1.21–1.22. Old → new mapping:
+> 4.4→1.21 (CLI), 4.5→1.22 (MCP). Old doc `phase-4-interfaces.md` is
+> superseded by this file. Test suite merged: `tests/phase_1/*` (285 tests)
+> + `tests/phase_4/*` renamed with `test_if_*` prefix (old phase_4 36 tests)
+> = 321 tests total. Old phase numbers 5–6 are unchanged.
 
 **Runs in parallel with phases 3–6.** Owns the frozen surface everything else
 builds against, so this phase's **proposal stage gates the whole project**.
@@ -53,6 +61,8 @@ Spec: `docs/Chronos.md` §4 (data model), §4.8 (vector + full-text search),
 | 1.18 voice route | 3.4 | `chronos/api/voice.py` | one code agent |
 | 1.19 realtime hub | 3.5 | `chronos/realtime/` | one code agent |
 | 1.20 smoke script | 3.6 | `scripts/smoke.sh` | one code agent |
+| 1.21 CLI | 4.4 | `chronos/cli/` | one code agent |
+| 1.22 MCP | 4.5 | `chronos/mcp/` | one code agent |
 
 Part 1.1 must land before 1.2–1.14 start. Parts 1.2–1.6 can run in parallel
 with each other; parts 1.7–1.10 are independent of 1.11–1.14; all within the
@@ -120,6 +130,11 @@ Cite spec § stays intact in the merged test files.
 - [ ] `create_app(db_path=...)` opens that exact file
 - [ ] starting a second timer returns 409, not a crash
 - [ ] the hub fans out to all connected clients
+- [ ] every CLI command in §9.2 runs and produces real output
+- [ ] `serve` finds the factory and forwards `--db`
+- [ ] `db-upgrade` completes and creates the schema in the `CHRONOS_DB` file
+- [ ] the MCP tool list matches the contracts exactly; no tool stubbed
+- [ ] unauthenticated MCP calls are rejected; every call is audited
 - [ ] full suite green
 - [ ] per-part scratch tests and probe scripts deleted; the phase's spec tests kept
       (`manager.md` §10)
@@ -147,7 +162,7 @@ Proposed new ownership row for merged Phase 1:
 
 | Phase | Test files | Code files |
 |---|---|---|
-| 1 Foundation | `tests/phase_1/*` | `chronos/contracts/` `chronos/db/` `chronos/core/` `chronos/ai/` minus `briefings/`/`stats`/`export` which stay Phase 5 `chronos/api/` `chronos/realtime/` `scripts/smoke.sh` |
+| 1 Foundation | `tests/phase_1/*` | `chronos/contracts/` `chronos/db/` `chronos/core/` `chronos/ai/` minus `briefings/`/`stats`/`export` which stay Phase 5 `chronos/api/` `chronos/realtime/` `scripts/smoke.sh` `chronos/cli/` `chronos/mcp/` |
 
 Note: old phase numbers 3–6 are unchanged. Old `tests/phase_2/` is deleted
 (contents moved to `tests/phase_1/test_ai_*`). Old docs `phase-1-core.md` and
@@ -157,3 +172,9 @@ Note (round 2, 2026-10-05): old `tests/phase_3/` is deleted (contents moved to
 `tests/phase_1/test_srv_*`). Old doc `phase-3-server.md` is superseded by
 `phase-1-foundation.md` (old Phase 3 parts 3.1–3.6 → new parts 1.15–1.20).
 Old phase numbers 4–6 are unchanged.
+
+Note (round 3, 2026-10-05): old `tests/phase_4/` is deleted (contents moved to
+`tests/phase_1/test_if_*`: `test_cli_spec.py` → `test_if_cli_spec.py`,
+`test_mcp_spec.py` → `test_if_mcp_spec.py`, byte-identical). Old doc
+`phase-4-interfaces.md` is superseded by `phase-1-foundation.md` (old Phase 4
+parts 4.4→1.21 CLI, 4.5→1.22 MCP). Old phase numbers 5–6 are unchanged.
