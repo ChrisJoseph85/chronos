@@ -36,6 +36,20 @@
 > `phase-5-features.md` is superseded by this file. Test suite merged:
 > `tests/phase_1/*` (321 tests) + `tests/phase_5/*` renamed with
 > `test_feat_*` prefix (old phase_5 43 tests) = 364 tests total.
+>
+> **MIGRATION NOTE (FINAL, 2026-10-05, reason: maintainability):** This
+> document additionally folds old `phase-6-deploy.md` (old Phase 6, parts
+> 6.1-6.6) into this Phase 1 as new parts 1.29-1.34. Old to new mapping:
+> 6.1 to 1.29 (dockerfile), 6.2 to 1.30 (compose), 6.3 to 1.31 (termux incl.
+> uv/proot-distro flow + python 3.14.7 pin), 6.4 to 1.32 (packaging),
+> 6.5 to 1.33 (CI), 6.6 to 1.34 (scripts). Old doc `phase-6-deploy.md` is
+> superseded by this file. Test suite merged: `tests/phase_1/*` (364 tests)
+> + `tests/phase_6/*` renamed with `test_ops_*` prefix (old phase_6 29 tests:
+> `test_packaging_spec.py` to `test_ops_packaging_spec.py`,
+> `test_docker_spec.py` to `test_ops_docker_spec.py`,
+> `test_termux_ci_spec.py` to `test_ops_termux_ci_spec.py` incl. 6 Termux-uv
+> >pinning tests, byte-identical) = 393 tests total (364+29=393). ALL PHASES NOW COMBINED
+> into single Phase 1.
 
 **Runs in parallel with phases 3–6.** Owns the frozen surface everything else
 builds against, so this phase's **proposal stage gates the whole project**.
@@ -78,6 +92,12 @@ Spec: `docs/Chronos.md` §4 (data model), §4.8 (vector + full-text search),
 | 1.26 stats | 5.4 | `chronos/ai/stats.py` | one code agent |
 | 1.27 audit viewer | 5.5 | `chronos/db/audit.py` | one code agent |
 | 1.28 CSV export | 5.6 | `chronos/ai/export.py` | one code agent |
+| 1.29 dockerfile | 6.1 | `Dockerfile`, `.dockerignore` | one code agent |
+| 1.30 compose | 6.2 | `docker-compose.yml` | one code agent |
+| 1.31 termux | 6.3 | `scripts/termux.sh`, `docs/termux.md` | one code agent |
+| 1.32 packaging | 6.4 | `pyproject.toml` | one code agent |
+| 1.33 CI | 6.5 | `.github/workflows/` | one code agent |
+| 1.34 deploy scripts | 6.6 | `scripts/backup.sh`, `docs/docker.md` (`scripts/smoke.sh` already owned) | one code agent |
 
 Part 1.1 must land before 1.2–1.14 start. Parts 1.2–1.6 can run in parallel
 with each other; parts 1.7–1.10 are independent of 1.11–1.14; all within the
@@ -161,6 +181,14 @@ Cite spec § stays intact in the merged test files.
 - [ ] `cost_usd` is non-zero for a known price and `None` for an unknown one
 - [ ] the audit log filters and is read-only
 - [ ] a CSV export opens cleanly and has no fake zeros
+- [ ] `docker compose up` yields a server that answers `/api/health`
+- [ ] the database survives container replacement (volume)
+- [ ] no secret is baked into an image layer
+- [ ] the Termux script installs, wake-locks and starts the server (uv/proot-distro flow, python 3.14.7 pin)
+- [ ] the embedding download is announced, never silent inside a request
+- [ ] `pip install -e .` then `chronos serve` works from a clean checkout
+- [ ] CI runs lint + tests + docker build on a clean checkout
+- [ ] `docs/termux.md` and `docs/docker.md` state exactly what was and was not verified on this host
 - [ ] full suite green
 - [ ] per-part scratch tests and probe scripts deleted; the phase's spec tests kept
       (`manager.md` §10)
@@ -188,7 +216,7 @@ Proposed new ownership row for merged Phase 1:
 
 | Phase | Test files | Code files |
 |---|---|---|
-| 1 Foundation | `tests/phase_1/*` | `chronos/contracts/` `chronos/db/` `chronos/core/` `chronos/ai/` `chronos/notify/` `chronos/db/search.py` `chronos/db/audit.py` `chronos/ai/briefings.py` `chronos/ai/stats.py` `chronos/ai/export.py` `chronos/api/` `chronos/realtime/` `scripts/smoke.sh` `chronos/cli/` `chronos/mcp/` |
+| 1 Foundation | `tests/phase_1/*` | `chronos/contracts/` `chronos/db/` `chronos/core/` `chronos/ai/` `chronos/notify/` `chronos/db/search.py` `chronos/db/audit.py` `chronos/ai/briefings.py` `chronos/ai/stats.py` `chronos/ai/export.py` `chronos/api/` `chronos/realtime/` `scripts/smoke.sh` `chronos/cli/` `chronos/mcp/` `Dockerfile` `.dockerignore` `docker-compose.yml` `pyproject.toml` `scripts/termux.sh` `scripts/backup.sh` `docs/termux.md` `docs/docker.md` `.github/workflows/` |
 
 Note: old phase numbers 3–6 are unchanged. Old `tests/phase_2/` is deleted
 (contents moved to `tests/phase_1/test_ai_*`). Old docs `phase-1-core.md` and
@@ -216,3 +244,16 @@ parts 5.1→1.23 notify `chronos/notify/`, 5.2→1.24 search
 `chronos/db/search.py`, 5.3→1.25 briefings `chronos/ai/briefings.py`,
 5.4→1.26 stats `chronos/ai/stats.py`, 5.5→1.27 audit `chronos/db/audit.py`,
 5.6→1.28 export `chronos/ai/export.py`). 321+43=364 tests total.
+
+Note (FINAL, 2026-10-05): old `tests/phase_6/` is deleted (contents moved to
+`tests/phase_1/test_ops_*`: `test_packaging_spec.py` →
+`test_ops_packaging_spec.py`, `test_docker_spec.py` →
+`test_ops_docker_spec.py`, `test_termux_ci_spec.py` →
+`test_ops_termux_ci_spec.py`, byte-identical). Old doc `phase-6-deploy.md` is
+superseded by `phase-1-foundation.md` (old Phase 6 parts 6.1→1.29 dockerfile
+`Dockerfile` `.dockerignore`, 6.2→1.30 compose `docker-compose.yml`,
+6.3→1.31 termux `scripts/termux.sh` `docs/termux.md` incl. uv/proot-distro
+flow + python 3.14.7 pin, 6.4→1.32 packaging `pyproject.toml`,
+6.5→1.33 CI `.github/workflows/`, 6.6→1.34 scripts `scripts/backup.sh`
+`docs/docker.md` noting `scripts/smoke.sh` already owned). 364+29=393 tests
+total. ALL PHASES NOW COMBINED into single Phase 1.
