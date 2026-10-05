@@ -15,17 +15,23 @@ proven-incomplete files, re-dispatch missing.
   - Audit 2026-10-05 ~19:0x UTC: phases 1–4 files complete on disk (line counts ok, 321 collected). NOTHING deleted.
 - 2026-10-05 ~19:0x UTC — Batch 1 dispatch [5,6] test agents (2 parallel).
   - RESULT: both killed (tool execution aborted, unstable net). NOTHING written: tests/phase_5/ and tests/phase_6/ absent on disk. No partial files to clean.
-  - Action: git init + snapshot before re-dispatch (this commit).
+  - Action: git init (ae37e4e) + snapshot before re-dispatch.
+- 2026-10-05 ~19:1x UTC — Retry dispatch [5,6] together after snapshot ae37e4e.
+  - Phase 5 tests: DONE. 43 tests (8 notify + 10 search + 10 briefing + 15 stats/audit/export). Verified red: 42 failed + 1 passed (pass = no-token-cost-tables freeze guard on empty tree).
+  - Phase 6 tests: DONE. 23 tests (6 packaging + 7 docker + 10 termux/ci). Verified red: 19 failed + 2 passed + 2 skipped (skips = no Docker daemon, no Android — honest, delegated to CI).
+  - Disk collect: 387 total (321 + 43 + 23) — matches. NOTHING deleted, phases 1–4 untouched.
+  - Gate Batch 1: PASS — all 6 suites exist and are red-as-expected (failing-first).
 
-## Current snapshot (pre-dispatch [5,6] retry)
+## Current snapshot (Batch 1 complete, pre-Batch 2 code dispatch)
 
 - tests/phase_1: 4 files, 84 tests — KEEP
 - tests/phase_2: 5 files, 68 tests — KEEP
 - tests/phase_3: 4 files, 133 tests — KEEP
 - tests/phase_4: 2 files, 36 tests — KEEP
-- tests/phase_5: MISSING — to dispatch
-- tests/phase_6: MISSING — to dispatch
-- Next: dispatch [5,6] together after this snapshot.
+- tests/phase_5: 4 files, 43 tests — KEEP
+- tests/phase_6: 3 files, 23 tests — KEEP
+- Total: 387 collected, all red-as-expected (no chronos/ impl yet).
+- Next: Batch 2 code agents — needs snapshot + joint dispatch per rule. Awaiting user go (unstable net: dispatch all together).
 
 ## Queue
 
