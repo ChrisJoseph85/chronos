@@ -137,6 +137,12 @@ proven-incomplete files, re-dispatch missing.
   - Server torn down, /tmp/prov-check.db removed. No .env created anywhere.
 - 2026-10-05 ~21:1x UTC — Full suite re-run post-provider: 403 passed +
   2 skipped (405 collected), 0 failed. Suite is GREEN.
+- 2026-10-05 ~21:2x UTC — User GO for wave-2 hardening (5 coders jointly).
+  Manager rulings (final): FTS canonical =
+  `fts5(title, notes, node_id UNINDEXED)`, join on node_id, identical CREATE
+  everywhere; seed_buckets runs on init path; alembic baseline applies
+  bootstrap DDL to target DB; PUT /api/settings rejects key-hash overwrite
+  (renew only); runtime deps must make fresh `pip install -e .` serve.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
