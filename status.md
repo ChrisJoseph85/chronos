@@ -153,6 +153,12 @@ proven-incomplete files, re-dispatch missing.
 - 2026-10-05 ~21:4x UTC — Pushed to github.com/ChrisJoseph85/Chronos
   (branch main; merged remote README via unrelated-histories merge; old
   local master deleted). No secrets tracked (scanned: no .env/.key/.pem).
+- 2026-10-05 ~21:5x UTC — Env change: host is now x86_64 + JDK 21 + full
+  Android SDK → APK CAN build here (v1 aarch64 constraint dead). Android
+  spec frozen at docs/android/spec.md: Kotlin, 7 tabs + global voice bar,
+  focus-shield UX (redirect, no direct entry; clean stop keeps time, stop
+  after attempt voids session via stop {void:true}), server additions v1.2
+  (stop-void + breakdown endpoint + voided column).
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
