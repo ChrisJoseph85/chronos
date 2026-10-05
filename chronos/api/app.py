@@ -23,6 +23,9 @@ def _ensure_db(db_path: str) -> None:
     conn = sqlite3.connect(db_path)
     try:
         init_db(conn)
+        from chronos.db.buckets import seed_buckets
+
+        seed_buckets(conn)
     finally:
         conn.close()
 

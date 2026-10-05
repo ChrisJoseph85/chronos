@@ -169,24 +169,99 @@ def validate_call(tool: str, arguments: dict) -> str | None:
 # ---------------------------------------------------------------------------
 
 def _call_executor(executor: Any, tool: str, arguments: dict) -> Any:
-    """Forward one call to the injected dispatcher, duck-typed."""
+    """Forward one call to the injected dispatcher, duck-typed.
+
+    Arguments are never dropped: the (tool, arguments) pair is always
+    forwarded. Arity is inspected once per candidate so single-arg or
+    keyword-style executors receive an envelope preserving both values
+    instead of a bare ``fn(tool)`` call that would lose ``arguments``.
+    """
     args = arguments or {}
     for attr in ("dispatch", "handle", "execute", "run_tool", "call_tool"):
         fn = getattr(executor, attr, None)
         if callable(fn):
             try:
                 sig = inspect.signature(fn)
-                if len(sig.parameters) >= 2:
+            except (TypeError, ValueError):
+                sig = None
+            if sig is None:
+                try:
                     return fn(tool, args)
-                return fn(tool)
+                except TypeError:
+                    continue
+            try:
+                return _invoke_preserving_args(fn, sig, tool, args)
             except TypeError:
                 continue
     if callable(executor):
         try:
+            sig = inspect.signature(executor)
+        except (TypeError, ValueError):
+            sig = None
+        if sig is None:
             return executor(tool, args)
-        except TypeError:
-            return executor(tool)
+        return _invoke_preserving_args(executor, sig, tool, args)
     raise TypeError("injected executor exposes no dispatch method")
+
+
+def _invoke_preserving_args(fn: Any, sig: Any, tool: str, args: dict) -> Any:
+    """Call ``fn`` exactly once with a shape that never drops ``args``."""
+    params = list(sig.parameters.values())
+    n_positional = sum(
+        1 for p in params
+        if p.kind in (inspect.Parameter.POSITIONAL_ONLY,
+                      inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    )
+    has_var_positional = any(
+        p.kind == inspect.Parameter.VAR_POSITIONAL for p in params
+    )
+    if has_var_positional or n_positional >= 2:
+        return fn(tool, args)
+    if n_positional == 1:
+        # Single-arg executor: preserve BOTH tool and arguments in one
+        # envelope; fall back to bare args (arguments still preserved).
+        try:
+            return fn({"tool": tool, "arguments": args})
+        except TypeError:
+            return fn(args)
+    # No positional slots (keyword-only / arg-less): use keywords when the
+    # names allow, else a single envelope — never a bare fn() / fn(tool).
+    names = {p.name for p in params}
+    has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params)
+    if has_var_kw or ({"tool", "arguments"} <= names):
+        return fn(tool, args)
+    if names:
+        kwargs: dict = {}
+        for key, value in (("tool", tool), ("arguments", args), ("args", args),
+                           ("argument", args), ("payload", {"tool": tool, "arguments": args})):
+            if key in names:
+                kwargs[key] = value
+        if kwargs:
+            return fn(**kwargs)
+    return fn({"tool": tool, "arguments": args})
+
+
+def _kind_from_accessor(fn: Any, node_id: Any) -> str | None:
+    """Extract a node kind via one duck-typed accessor; None if unusable."""
+    if not callable(fn):
+        return None
+    try:
+        node = fn(node_id)
+    except Exception:
+        return None
+    if node is None:
+        return None
+    if isinstance(node, str):
+        return node
+    if isinstance(node, dict):
+        kind = node.get("kind")
+        return kind if isinstance(kind, str) else None
+    if isinstance(node, (tuple, list)) and node:
+        first = node[0]
+        if isinstance(first, str):
+            return first
+    kind = getattr(node, "kind", None)
+    return kind if isinstance(kind, str) else None
 
 
 def _resolve_db_path(executor: Any, explicit: str | None = None) -> str | None:
@@ -340,9 +415,11 @@ class MCPServer:
                 raise ValueError(error)
             if self.executor is None:
                 raise RuntimeError("no executor injected")
-            # Tag-on-project lookup: resolve node kind without extra audited
-            # calls when the executor exposes a direct accessor.
-            if tool == "tag_node" and "kind" not in args:
+            # Tag-on-project lookup (Chronos.md sec 4.1, same rule as voice
+            # path ToolDispatcher._do_tag_node): the node's REAL kind needs a
+            # DB lookup — args["kind"] alone is spoofable, so always resolve
+            # by node_id and refuse tag_node on projects with 422.
+            if tool == "tag_node":
                 kind = self._lookup_node_kind(args.get("node_id"))
                 if kind == "project":
                     status = "rejected"
@@ -363,16 +440,43 @@ class MCPServer:
     def _lookup_node_kind(self, node_id: Any) -> str | None:
         if not node_id or self.executor is None:
             return None
-        for attr in ("get_node", "fetch_node", "node_kind"):
-            fn = getattr(self.executor, attr, None)
-            if callable(fn):
+        # 1) direct accessors on the injected executor (duck-typed, no hard
+        #    imports of other owners' modules).
+        for attr in ("get_node", "fetch_node", "node_kind", "get_node_kind",
+                     "find_node", "getNode"):
+            kind = _kind_from_accessor(getattr(self.executor, attr, None), node_id)
+            if kind:
+                return kind
+        # 2) via injected store/repo holders (e.g. NormalizingDispatcher.store,
+        #    ToolDispatcher.store, wrappers exposing _inner/inner/delegate).
+        for holder_attr in ("store", "repo", "repository", "_inner", "inner",
+                            "dispatcher", "executor", "delegate", "backend"):
+            try:
+                holder = getattr(self.executor, holder_attr, None)
+            except Exception:
+                continue
+            if holder is None or holder is self.executor:
+                continue
+            for attr in ("get_node", "fetch_node", "node_kind", "get_node_kind",
+                         "find_node", "getNode"):
+                kind = _kind_from_accessor(getattr(holder, attr, None), node_id)
+                if kind:
+                    return kind
+        # 3) sqlite fallback: the REAL kind lives in nodes.kind.
+        db_path = _resolve_db_path(self.executor, self.db_path)
+        if db_path:
+            try:
+                conn = sqlite3.connect(db_path)
                 try:
-                    node = fn(node_id)
-                    if isinstance(node, dict):
-                        return node.get("kind")
-                    return getattr(node, "kind", None)
-                except Exception:
-                    continue
+                    row = conn.execute(
+                        "SELECT kind FROM nodes WHERE id = ?", (node_id,)
+                    ).fetchone()
+                finally:
+                    conn.close()
+                if row:
+                    return row[0]
+            except Exception:
+                pass
         return None
 
     # -- HTTP ---------------------------------------------------------------

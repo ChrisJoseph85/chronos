@@ -6,7 +6,13 @@ import math
 import sqlite3
 import uuid
 
+from chronos.db.bootstrap import FTS_DDL as _CANONICAL_FTS_DDL
+
 REUSE_THRESHOLD = 0.85
+
+# Canonical FTS CREATE (Chronos.md §4.8; 2026-10-05 freeze): identical string
+# everywhere — regular table joining back to nodes on node_id match.
+FTS_DDL = _CANONICAL_FTS_DDL
 
 
 def _commit(db):
@@ -19,10 +25,7 @@ def _commit(db):
 
 
 def _ensure_fts(db):
-    db.execute(
-        "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts"
-        " USING fts5(title, notes, node_id UNINDEXED)"
-    )
+    db.execute(_CANONICAL_FTS_DDL)
 
 
 def index_node(db, node_id, title, notes=""):
@@ -70,7 +73,8 @@ def _cosine(a, b):
 
 def _fts_candidates(db, query):
     cur = db.execute(
-        "SELECT node_id, title, bm25(node_fts) AS rank FROM node_fts"
+        "SELECT node_fts.node_id, node_fts.title, bm25(node_fts) AS rank FROM node_fts"
+        " JOIN nodes ON nodes.id = node_fts.node_id"
         " WHERE node_fts MATCH ?",
         (query,),
     )

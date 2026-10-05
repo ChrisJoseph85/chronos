@@ -11,7 +11,12 @@ import sqlite3
 import time
 import uuid
 
-__all__ = ["Repo", "open_repo"]
+__all__ = ["Repo", "open_repo", "FTS_DDL"]
+
+try:
+    from chronos.db.bootstrap import FTS_DDL
+except ImportError:  # pragma: no cover - fallback keeps canonical string identical
+    FTS_DDL = "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title, notes, node_id UNINDEXED)"
 
 
 def _now() -> int:
@@ -22,18 +27,38 @@ def _uid() -> str:
     return uuid.uuid4().hex
 
 
-def _index_node(conn: sqlite3.Connection, title: str | None, notes: str | None) -> None:
+def _snap_to_minute(ms: int) -> int:
+    """Snap to minute grid (Chronos.md §7.2): ceil to next minute boundary."""
+    ms = int(ms)
+    return ((ms + 60_000 - 1) // 60_000) * 60_000
+
+
+def _ensure_fts(conn: sqlite3.Connection) -> None:
     try:
+        conn.execute(FTS_DDL)
+    except sqlite3.OperationalError:
+        pass
+
+
+def _index_node(conn: sqlite3.Connection, node_id: str, title: str | None,
+                notes: str | None) -> None:
+    try:
+        try:
+            conn.execute(FTS_DDL)
+        except sqlite3.OperationalError:
+            pass
+        conn.execute("DELETE FROM node_fts WHERE node_id = ?", (node_id,))
         conn.execute(
-            "INSERT INTO node_fts (title, notes) VALUES (?, ?)", (title, notes)
+            "INSERT INTO node_fts (title, notes, node_id) VALUES (?, ?, ?)",
+            (title or "", notes or "", node_id),
         )
     except sqlite3.OperationalError:
         pass
 
 
-def _remove_node_index(conn: sqlite3.Connection, title: str | None) -> None:
+def _remove_node_index(conn: sqlite3.Connection, node_id: str) -> None:
     try:
-        conn.execute("DELETE FROM node_fts WHERE title = ?", (title,))
+        conn.execute("DELETE FROM node_fts WHERE node_id = ?", (node_id,))
     except sqlite3.OperationalError:
         pass
 
@@ -57,7 +82,7 @@ class Repo:
             (nid, parent_id, kind, title, notes, status, now, now),
         )
         self.conn.commit()
-        _index_node(self.conn, title, notes)
+        _index_node(self.conn, nid, title, notes)
         try:
             self.conn.commit()
         except sqlite3.OperationalError:
@@ -69,13 +94,26 @@ class Repo:
         return row
 
     def delete_node(self, node_id: str) -> None:
+        _remove_node_index(self.conn, node_id)
         self.conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
-        self.conn.commit()
+        try:
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        _remove_node_index(self.conn, node_id)
+        try:
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass
 
     # -- events --
     def create_event(self, title: str, start_ms: int, end_ms: int, kind: str = "focus",
                      node_id=None) -> dict:
         eid = _uid()
+        start_ms = _snap_to_minute(start_ms)
+        end_ms = _snap_to_minute(end_ms)
+        if end_ms <= start_ms:
+            end_ms = start_ms + 60_000
         self.conn.execute(
             "INSERT INTO events (id, node_id, title, start_ms, end_ms, kind,"
             " bucket_id, series_id, review_index, derived_from, soft_deleted, created_at)"

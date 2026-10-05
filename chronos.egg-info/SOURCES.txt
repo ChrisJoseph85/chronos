@@ -20,6 +20,7 @@ chronos/ai/providers/__init__.py
 chronos/ai/providers/adapter.py
 chronos/ai/providers/chain.py
 chronos/ai/providers/defaults.py
+chronos/ai/providers/registry.py
 chronos/ai/providers/stt.py
 chronos/ai/providers/worker.py
 chronos/api/__init__.py

@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from chronos.api.auth import extract_key, verify_key
-from chronos.api.voice import transcribe_audio
+from chronos.api.voice import STTNotConfigured, transcribe_audio
 
 router = APIRouter()
 
@@ -76,6 +76,135 @@ def _iso_ms(ms: int | None) -> str | None:
 
 def _row_to_dict(row: Any) -> dict:
     return {key: row[key] for key in row.keys()}
+
+
+def _series_day_ms() -> tuple[int, dict]:
+    try:
+        from chronos.core.scheduling import DAY_MS, TIER_OFFSETS
+    except ImportError:
+        DAY_MS = 86400000
+        TIER_OFFSETS = {"hard": [1, 2, 4, 8, 16], "medium": [3, 7, 15, 30],
+                        "easy": [10, 30, 90]}
+    return DAY_MS, TIER_OFFSETS
+
+
+def _insert_series_events(conn: sqlite3.Connection, node_id: str, series_id: str,
+                           offsets: list, anchor_ms: int, anchor: str,
+                           day_ms: int, now: int) -> int:
+    """Insert one review event per offset (minute-grid snapped); returns count."""
+    for i, off in enumerate(offsets, start=1):
+        eid = _uid()
+        start = anchor_ms + int(off) * day_ms
+        conn.execute(
+            "INSERT INTO events (id, node_id, title, start_ms, end_ms, kind,"
+            " bucket_id, series_id, review_index, derived_from, soft_deleted, created_at)"
+            " VALUES (?, ?, ?, ?, ?, 'review', NULL, ?, ?, ?, 0, ?)",
+            (eid, node_id, "review", start, start + 30 * 60000, series_id, i, anchor, now),
+        )
+    return len(offsets)
+
+
+def _resolve_offsets(args: dict, tier: str, tier_offsets: dict, fallback: list | None = None) -> list:
+    if args.get("offsets_days") is not None or args.get("offsets") is not None:
+        return list(args.get("offsets_days") or args.get("offsets") or [1])
+    if tier == "custom" and fallback is not None:
+        return list(fallback)
+    if tier == "custom":
+        return list(args.get("offsets_days") or args.get("offsets") or [1])
+    return list(tier_offsets.get(tier, [1]))
+
+
+# ---------------------------------------------------------------------------
+# FTS helpers (canonical: fts5(title, notes, node_id UNINDEXED), best-effort)
+# ---------------------------------------------------------------------------
+
+def _fts_insert(conn: sqlite3.Connection, title: Any, notes: Any, node_id: str) -> None:
+    """Best-effort FTS write; narrow OperationalError only, never raises."""
+    try:
+        conn.execute(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts"
+            " USING fts5(title, notes, node_id UNINDEXED)"
+        )
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute(
+            "INSERT INTO node_fts (title, notes, node_id) VALUES (?, ?, ?)",
+            (title or "", notes or "", node_id),
+        )
+    except sqlite3.OperationalError:
+        try:
+            conn.execute(
+                "INSERT INTO node_fts (title, notes) VALUES (?, ?)",
+                (title or "", notes or ""),
+            )
+        except sqlite3.OperationalError:
+            pass
+
+
+def _fts_reindex(conn: sqlite3.Connection, node_id: str, title: Any, notes: Any) -> None:
+    """Best-effort FTS re-index on update; narrow OperationalError only."""
+    try:
+        conn.execute("DELETE FROM node_fts WHERE node_id = ?", (node_id,))
+        conn.execute(
+            "INSERT INTO node_fts (title, notes, node_id) VALUES (?, ?, ?)",
+            (title or "", notes or "", node_id),
+        )
+    except sqlite3.OperationalError:
+        _fts_insert(conn, title, notes, node_id)
+
+
+def _fts_delete(conn: sqlite3.Connection, node_id: str) -> None:
+    """Best-effort FTS row removal on delete; narrow OperationalError only."""
+    try:
+        conn.execute("DELETE FROM node_fts WHERE node_id = ?", (node_id,))
+    except sqlite3.OperationalError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# instance timezone (Chronos.md §7: one instance tz governs day boundaries)
+# ---------------------------------------------------------------------------
+
+def _instance_tz_name(conn: sqlite3.Connection) -> str:
+    try:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = 'instance.timezone'"
+        ).fetchone()
+    except sqlite3.DatabaseError:
+        return "UTC"
+    if row is None:
+        return "UTC"
+    name = str(row[0]).strip() or "UTC"
+    try:
+        from zoneinfo import ZoneInfo
+
+        ZoneInfo(name)
+    except Exception:
+        return "UTC"
+    return name
+
+
+def _briefing_day(raw: str, tz_name: str) -> str:
+    """Resolve a YYYY-MM-DD briefing day; default is today in instance tz."""
+    from zoneinfo import ZoneInfo
+
+    text = (raw or "").strip()
+    if text:
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date().isoformat()
+        except ValueError:
+            pass
+        if len(text) >= 10:
+            try:
+                return datetime.strptime(text[:10], "%Y-%m-%d").date().isoformat()
+            except ValueError:
+                pass
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = timezone.utc
+    return datetime.now(tz).date().isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -163,12 +292,7 @@ class _Store:
             conn.close()
 
     def schedule_series(self, args: dict) -> dict:
-        try:
-            from chronos.core.scheduling import DAY_MS, TIER_OFFSETS
-        except ImportError:
-            DAY_MS = 86400000
-            TIER_OFFSETS = {"hard": [1, 2, 4, 8, 16], "medium": [3, 7, 15, 30],
-                            "easy": [10, 30, 90]}
+        DAY_MS, TIER_OFFSETS = _series_day_ms()
         conn = self._conn()
         try:
             sid = _uid()
@@ -178,10 +302,7 @@ class _Store:
                 created = self.create_node({"kind": "task", "title": str(args.get("title") or "series")})
                 node_id = created["id"]
             tier = str(args.get("tier") or "custom")
-            if tier == "custom":
-                offsets = list(args.get("offsets_days") or args.get("offsets") or [1])
-            else:
-                offsets = list(TIER_OFFSETS.get(tier, [1]))
+            offsets = _resolve_offsets(args, tier, TIER_OFFSETS)
             max_count = args.get("max_count")
             if isinstance(max_count, int) and max_count > 0:
                 offsets = offsets[:max_count]
@@ -195,18 +316,11 @@ class _Store:
             )
             anchor_ms = _parse_ms(args.get("anchor_ms")) or (now + DAY_MS)
             anchor_ms = (anchor_ms // 60000) * 60000
-            for i, off in enumerate(offsets, start=1):
-                eid = _uid()
-                start = anchor_ms + int(off) * DAY_MS
-                conn.execute(
-                    "INSERT INTO events (id, node_id, title, start_ms, end_ms, kind,"
-                    " bucket_id, series_id, review_index, derived_from, soft_deleted, created_at)"
-                    " VALUES (?, ?, ?, ?, ?, 'review', NULL, ?, ?, ?, 0, ?)",
-                    (eid, node_id, "review", start, start + 30 * 60000, sid, i, anchor, now),
-                )
+            count = _insert_series_events(conn, node_id, sid, offsets, anchor_ms,
+                                          anchor, DAY_MS, now)
             conn.commit()
             return {"id": sid, "series_id": sid, "offsets_days": offsets,
-                    "event_count": len(offsets)}
+                    "event_count": count}
         finally:
             conn.close()
 
@@ -217,13 +331,23 @@ class _Store:
         try:
             try:
                 rows = conn.execute(
-                    "SELECT rowid, title FROM node_fts WHERE node_fts MATCH ? LIMIT ?",
+                    "SELECT node_id, title FROM node_fts WHERE node_fts MATCH ? LIMIT ?",
                     (query, limit),
                 ).fetchall()
-                nodes = [{"title": r["title"]} for r in rows]
+                nodes = []
+                for r in rows:
+                    nid = r[0]
+                    try:
+                        nrow = conn.execute(
+                            "SELECT kind FROM nodes WHERE id = ?", (nid,)
+                        ).fetchone()
+                    except sqlite3.OperationalError:
+                        nrow = None
+                    nodes.append({"id": nid, "kind": nrow[0] if nrow else None,
+                                  "title": r[1]})
                 if nodes:
                     return {"nodes": nodes, "results": nodes}
-            except sqlite3.DatabaseError:
+            except sqlite3.OperationalError:
                 pass
             like = "%" + query + "%"
             rows = conn.execute(
@@ -257,11 +381,7 @@ class _Store:
                 (nid, args.get("parent_id"), kind, title, args.get("notes"),
                  str(args.get("status") or "active"), now, now),
             )
-            try:
-                conn.execute("INSERT INTO node_fts (title, notes) VALUES (?, ?)",
-                             (title, args.get("notes")))
-            except sqlite3.DatabaseError:
-                pass
+            _fts_insert(conn, title, args.get("notes"), nid)
             conn.commit()
             return {"id": nid, "kind": kind, "title": title}
         finally:
@@ -279,6 +399,14 @@ class _Store:
                     "UPDATE nodes SET %s WHERE id = ?" % ", ".join("%s = ?" % k for k in fields),
                     (*fields.values(), nid),
                 )
+                try:
+                    current = conn.execute(
+                        "SELECT title, notes FROM nodes WHERE id = ?", (nid,)
+                    ).fetchone()
+                except sqlite3.OperationalError:
+                    current = None
+                if current is not None:
+                    _fts_reindex(conn, nid, current[0], current[1])
                 conn.commit()
             return {"id": nid, "updated": True}
         finally:
@@ -289,6 +417,7 @@ class _Store:
         try:
             nid = args.get("node_id") or args.get("id")
             conn.execute("DELETE FROM nodes WHERE id = ?", (nid,))
+            _fts_delete(conn, nid)
             conn.commit()
             return {"id": nid, "deleted": True}
         finally:
@@ -310,12 +439,17 @@ class _Store:
         conn = self._conn()
         try:
             nid = args.get("node_id")
+            if self.get_node_kind(nid) == "project":
+                raise ValueError("tags never apply to projects")
             name = str(args.get("name") or args.get("tag") or "tag")
             tid = _uid()
             conn.execute("INSERT OR IGNORE INTO tags (id, name) VALUES (?, ?)", (tid, name))
             row = conn.execute("SELECT id FROM tags WHERE name = ?", (name,)).fetchone()
-            conn.execute("INSERT OR IGNORE INTO node_tags (node_id, tag_id) VALUES (?, ?)",
-                         (nid, row["id"]))
+            try:
+                conn.execute("INSERT OR IGNORE INTO node_tags (node_id, tag_id) VALUES (?, ?)",
+                             (nid, row["id"]))
+            except sqlite3.IntegrityError as exc:
+                raise ValueError("tags never apply to projects") from exc
             conn.commit()
             return {"node_id": nid, "tag": name, "tagged": True}
         finally:
@@ -383,7 +517,50 @@ class _Store:
             conn.close()
 
     def reschedule_series(self, args: dict) -> dict:
-        return {"series_id": args.get("series_id"), "rescheduled": True}
+        """Delete series events + regenerate in one transaction (honest result)."""
+        DAY_MS, TIER_OFFSETS = _series_day_ms()
+        sid = args.get("series_id") or args.get("id")
+        conn = self._conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM review_series WHERE id = ?", (sid,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("unknown series: %r" % (sid,))
+            prev = _row_to_dict(row)
+            try:
+                prev_offsets = json.loads(prev.get("offsets_days") or "[]")
+            except (ValueError, TypeError):
+                prev_offsets = [1]
+            tier = str(args.get("tier") or prev.get("tier") or "custom")
+            offsets = _resolve_offsets(args, tier, TIER_OFFSETS, fallback=prev_offsets)
+            max_count = args.get("max_count", prev.get("max_count"))
+            if isinstance(max_count, int) and max_count > 0:
+                offsets = offsets[:max_count]
+            node_id = args.get("node_id") or prev.get("node_id")
+            anchor = args.get("anchor_node_id") or prev.get("anchor_node_id") or node_id
+            if args.get("ends_on_ms") is not None:
+                ends_on = _parse_ms(args.get("ends_on_ms"))
+            else:
+                ends_on = prev.get("ends_on_ms")
+            anchor_ms = _parse_ms(args.get("anchor_ms")) or (_now_ms() + DAY_MS)
+            anchor_ms = (anchor_ms // 60000) * 60000
+            now = _now_ms()
+            with conn:
+                conn.execute("DELETE FROM events WHERE series_id = ?", (sid,))
+                conn.execute(
+                    "UPDATE review_series SET node_id = ?, tier = ?, offsets_days = ?,"
+                    " anchor_node_id = ?, max_count = ?, ends_on_ms = ? WHERE id = ?",
+                    (node_id, tier, json.dumps(list(offsets)), anchor,
+                     max_count if isinstance(max_count, int) else None, ends_on, sid),
+                )
+                count = _insert_series_events(conn, node_id, sid, offsets, anchor_ms,
+                                              anchor, DAY_MS, now)
+            return {"id": sid, "series_id": sid, "rescheduled": True,
+                    "offsets_days": list(offsets), "event_count": count,
+                    "anchor_ms": anchor_ms}
+        finally:
+            conn.close()
 
     def check_conflict(self, args: dict) -> dict:
         start_ms = _parse_ms(args.get("start_ms", args.get("start", args.get("from"))))
@@ -547,17 +724,33 @@ class _Store:
             conn.close()
 
     def _day_range(self, args: dict) -> tuple[int, int, str]:
+        from zoneinfo import ZoneInfo
+
         raw = str(args.get("date") or "")
-        day_ms = _parse_ms(raw)
-        if day_ms is None:
-            day_ms = (_now_ms() // 86400000) * 86400000
-        else:
-            day_ms = (day_ms // 86400000) * 86400000
+        label: str | None = None
+        if raw.strip():
+            try:
+                label = datetime.fromisoformat(raw.strip().replace("Z", "+00:00")).date().isoformat()
+            except ValueError:
+                label = None
+        conn = self._conn()
         try:
-            label = datetime.fromtimestamp(day_ms / 1000.0, tz=timezone.utc).date().isoformat()
+            tz_name = _instance_tz_name(conn)
+        finally:
+            conn.close()
+        try:
+            tz = ZoneInfo(tz_name)
         except Exception:
-            label = raw
-        return day_ms, day_ms + 86400000, label
+            tz = timezone.utc
+        if label is not None:
+            year, month, day = (int(p) for p in label.split("-"))
+            start_ms = int(datetime(year, month, day, tzinfo=tz).timestamp() * 1000)
+        else:
+            now_local = datetime.now(tz)
+            label = now_local.date().isoformat()
+            start_ms = int(datetime(now_local.year, now_local.month, now_local.day,
+                                    tzinfo=tz).timestamp() * 1000)
+        return start_ms, start_ms + 86400000, label
 
     def get_day(self, args: dict) -> dict:
         start, end, label = self._day_range(args)
@@ -597,9 +790,14 @@ class _Store:
             conn.close()
 
     def get_briefing(self, args: dict) -> dict:
-        _, _, label = self._day_range(args)
-        return {"date": label, "unallocated_tasks": [], "rollover": [],
-                "due_reviews": [], "events": []}
+        from chronos.ai.briefings import build_briefing
+
+        conn = self._conn()
+        try:
+            day = _briefing_day(str((args or {}).get("date") or ""), _instance_tz_name(conn))
+            return dict(build_briefing(conn, day))
+        finally:
+            conn.close()
 
     def ask_question(self, args: dict) -> dict:
         return {"question": str(args.get("question") or "Could you clarify?"), "asked": True}
@@ -804,7 +1002,10 @@ async def post_commands(request: Request) -> JSONResponse:
     try:
         result = dispatcher.dispatch(tool, dict(arguments))
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        message = str(exc) or ("unimplemented tool: %s" % tool)
+        if tool == "tag_node" and "project" in message:
+            raise HTTPException(status_code=422, detail=message)
+        raise HTTPException(status_code=400, detail=message)
     events: list[dict] = []
     if isinstance(result, dict):
         for key in ("events", "created_events"):
@@ -819,7 +1020,16 @@ async def post_commands(request: Request) -> JSONResponse:
 @router.post("/api/voice")
 async def post_voice(request: Request, file: UploadFile | None = None) -> JSONResponse:
     await _require_auth(request)
-    result = await transcribe_audio(file, None)
+    try:
+        result = await transcribe_audio(
+            file, None,
+            db_path=_db_path(request),
+            transport=_provider_transport(request),
+        )
+    except STTNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc) or "STT provider not configured")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc) or "STT unavailable")
     return JSONResponse(result)
 
 
@@ -886,8 +1096,16 @@ async def get_buckets(request: Request) -> JSONResponse:
 @router.get("/api/briefing")
 async def get_briefing(request: Request) -> JSONResponse:
     await _require_auth(request)
+    from chronos.ai.briefings import build_briefing
+
     date = request.query_params.get("date") or ""
-    return JSONResponse({"date": date, "unallocated_tasks": [], "rollover": [], "due_reviews": []})
+    conn = _connect(request)
+    try:
+        day = _briefing_day(date, _instance_tz_name(conn))
+        body = build_briefing(conn, day)
+    finally:
+        conn.close()
+    return JSONResponse(dict(body))
 
 
 @router.get("/api/search")
@@ -1187,6 +1405,13 @@ async def put_settings(request: Request) -> JSONResponse:
         raise HTTPException(status_code=422, detail="invalid JSON body")
     if not isinstance(payload, dict):
         raise HTTPException(status_code=422, detail="settings body must be an object")
+    for key in payload:
+        lowered = str(key).lower()
+        if any(part in lowered for part in _HIDDEN_SETTING_PARTS):
+            raise HTTPException(
+                status_code=403,
+                detail="key rotation only via POST /api/keys/renew",
+            )
     conn = _connect(request)
     try:
         for key, value in payload.items():

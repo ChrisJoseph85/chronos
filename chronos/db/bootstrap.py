@@ -1,10 +1,13 @@
 """Real SQLite DDL for Chronos.md §4 (+ decisions.md rulings).
 
-FTS freeze 2026-10-05: node_fts = fts5(title, notes) regular table.
+FTS freeze 2026-10-05 (canonical): node_fts = fts5(title, notes, node_id UNINDEXED)
+regular table joining back to nodes on node_id match.
 No token-cost tables. No web.
 """
 
 from __future__ import annotations
+
+FTS_DDL = "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title, notes, node_id UNINDEXED)"
 
 DDL_STATEMENTS: list[str] = [
     """CREATE TABLE IF NOT EXISTS nodes (
@@ -149,8 +152,8 @@ BEGIN
         THEN RAISE(ABORT, 'one timer at a time')
     END;
 END""",
-    # FTS5 regular table (2026-10-05 freeze): narrow OperationalError only at query time.
-    "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title, notes)",
+    # FTS5 regular table (2026-10-05 freeze, canonical): narrow OperationalError only at query time.
+    FTS_DDL,
     # Provider management (v1.1 amendment 2026-10-05): server-side store, no .env.
     # Key VALUES live in SQLite; the API never returns them (write-only).
     """CREATE TABLE IF NOT EXISTS providers (

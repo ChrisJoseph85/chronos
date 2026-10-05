@@ -70,13 +70,17 @@ cmd_install() {
   else
     proot-distro install "$DISTRO"
   fi
-  # Everything app-side happens INSIDE the distro.
+  # Everything app-side happens INSIDE the distro. Path vars (REPO_ROOT,
+  # VENV_DIR, MODEL_DST) resolve INSIDE the guest: the single-quoted guest
+  # scripts below expand the GUEST $HOME; host values arrive only via env
+  # passthrough (HOST_REPO/HOST_VENV/...) as override defaults, never via
+  # host-expanded $HOME literals.
   proot-distro login "$DISTRO" -- sh -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
   # Pinned interpreter inside the distro (default 3.14.7).
-  proot-distro login "$DISTRO" -- sh -c "\$HOME/.local/bin/uv python install $PYTHON_PIN"
+  proot-distro login "$DISTRO" -- env "PYTHON_PIN=$PYTHON_PIN" sh -c 'exec "$HOME/.local/bin/uv" python install "$PYTHON_PIN"'
   # uv python install 3.14.7 is the pinned default above (CHRONOS_PYTHON overrides).
-  proot-distro login "$DISTRO" -- sh -c "cd '$REPO_ROOT' && \$HOME/.local/bin/uv venv '$VENV_DIR' && \$HOME/.local/bin/uv pip install -e ."
-  echo "installed inside $DISTRO ($VENV_DIR)"
+  proot-distro login "$DISTRO" -- env "HOST_REPO=$REPO_ROOT" "HOST_VENV=$VENV_DIR" sh -c 'REPO_ROOT="${CHRONOS_REPO:-$HOST_REPO}"; VENV_DIR="${CHRONOS_VENV:-$HOST_VENV}"; export PATH="$VENV_DIR/bin:$PATH"; cd "$REPO_ROOT" && $HOME/.local/bin/uv venv "$VENV_DIR" && $HOME/.local/bin/uv pip install -e .'
+  echo "installed inside $DISTRO (guest venv \$VENV_DIR)"
 }
 
 cmd_fetch_model() {
@@ -84,18 +88,23 @@ cmd_fetch_model() {
     echo "error: set CHRONOS_MODEL_URL first (no model URL is hardcoded)" >&2
     exit 1
   fi
-  echo "downloading ~274 MB embedding model with progress inside $DISTRO: $MODEL_DST"
+  echo "downloading ~274 MB embedding model with progress inside $DISTRO: guest \$MODEL_DST"
   # Visible progress inside the distro; -C - resumes after a kill.
-  # Never fetched silently inside a request.
-  proot-distro login "$DISTRO" -- sh -c "mkdir -p '$(dirname "$MODEL_DST")' && curl --progress-bar -C - -o '$MODEL_DST' '$MODEL_URL'"
-  echo "model saved to $MODEL_DST"
+  # Never fetched silently inside a request. MODEL_DST resolves INSIDE the
+  # guest (guest $HOME default); the host value is only an override default.
+  proot-distro login "$DISTRO" -- env "HOST_MODEL_DST=$MODEL_DST" "MODEL_URL=$MODEL_URL" sh -c 'MODEL_DST="${CHRONOS_MODEL_DST:-$HOST_MODEL_DST}"; mkdir -p "$(dirname "$MODEL_DST")" && curl --progress-bar -C - -o "$MODEL_DST" "$MODEL_URL"'
+  echo "model saved (guest path)"
 }
 
 cmd_run() {
   termux-wake-unlock 2>/dev/null || true
   termux-wake-lock
   echo "wake lock held; starting server inside $DISTRO"
-  exec proot-distro login "$DISTRO" -- sh -c "exec chronos serve --host '$HOST' --port '$PORT' --db '$DB'"
+  # venv/bin goes on PATH INSIDE the guest before `chronos serve`, so the
+  # distro never falls back to Termux prefix python. DB/HOST/PORT resolve
+  # inside the guest (guest $HOME default for the db); host values arrive
+  # only via env passthrough as override defaults.
+  exec proot-distro login "$DISTRO" -- env "HOST_VENV=${CHRONOS_VENV:-}" "HOST_DB=${CHRONOS_DB:-}" "HOST_HOST=$HOST" "HOST_PORT=$PORT" sh -c 'VENV_DIR="${HOST_VENV:-$HOME/.chronos/venv}"; export PATH="$VENV_DIR/bin:$PATH"; DB="${HOST_DB:-$HOME/.chronos/chronos.db}"; HOST="${HOST_HOST:-127.0.0.1}"; PORT="${HOST_PORT:-8080}"; exec chronos serve --host "$HOST" --port "$PORT" --db "$DB"'
 }
 
 cmd_status() {

@@ -189,3 +189,18 @@ All six phase proposals are now frozen. Stage 2 (build) can begin.
 3. **FTS fixed.** `node_fts` = `fts5(title, notes)` (regular, not `content=''`). SHA-256 rowid hack removed. `search_keyword` joins back to `nodes`; `index/remove/reindex` best-effort, never break writes, narrow `except OperationalError` only.
 4. **Target clarified.** Build host = proot-distro inside Termux (Fedora 44 aarch64). Termux-prefix tools (`pkg`, wake-lock) live outside. Docker behaviour unverified here, delegated to CI.
 5. **`smoke.sh` is the gate** and must: use `.venv/bin/chronos`, throwaway DB only (never `$CHRONOS_DB`), poll `/api/health`, assert 401 no-key / 401 bad-key / 200 good-key, one English sentence → real row in SQLite, second timer → 409.
+
+---
+
+**2026-10-05 — v2 build rulings (single-phase).**
+
+1. **NOW_MS test-wrong (1785844800000).** *Ruling: test wrong.* Hardcoded `NOW_MS=1785844800000` (2026-08-05) expired against real scheduling logic — fix the test clock, not the code.
+2. **health-open wins over routes-401 case.** *Ruling: `/api/health` stays open.* A test demanding 401 on health contradicts the smoke gate and deploy probes — health is unauthenticated by design.
+3. **CLI --version added.** *Ruling: add it.* Spec/UX needs `chronos --version`; implementation was missing, so the test gap was real.
+4. **FTS canonical fts5(title,notes,node_id UNINDEXED).** *Ruling: this exact shape.* Keeps full-text on title+notes while storing node_id as a plain carrier — avoids the old SHA-256 rowid hack and keeps writes best-effort.
+5. **seed-on-init.** *Ruling: seed at DB init.* Default buckets/settings must exist on fresh init so first-run paths never hit empty-table branches.
+6. **alembic-applies-DDL.** *Ruling: migrations apply the DDL.* Alembic revisions must execute the real schema statements — a no-op migration hides drift between models and DB.
+7. **settings-hash rejected.** *Ruling: rejected.* Hashing the whole settings blob adds a spurious failure mode with no spec basis — merge semantics from Phase 3 stand.
+8. **provider-mgmt v1.1 (write-only keys, DB store, no .env).** *Ruling: v1.1 shape.* API keys are write-only via API, persisted in DB, never read from `.env` — avoids plaintext env leakage and matches the instance-key model.
+9. **termux-uv flow (proot-distro+uv+3.14.7).** *Ruling: canonical Termux path.* proot-distro + `uv` + pinned 3.14.7 is the reproducible on-device install — `pkg python` drift caused prior breakage.
+10. **phases-combined naming.** *Ruling: one suite `tests/phase_1/*` with `test_*`, `test_ai_*`, `test_srv_*`, `test_if_*`, `test_feat_*`, `test_ops_*` + `test_*_fixes_spec.py`.* Old phase 2–6 docs superseded by `phases/phase-1-foundation.md` — keeps history without re-splitting ownership.

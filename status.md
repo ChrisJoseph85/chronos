@@ -143,6 +143,13 @@ proven-incomplete files, re-dispatch missing.
   everywhere; seed_buckets runs on init path; alembic baseline applies
   bootstrap DDL to target DB; PUT /api/settings rejects key-hash overwrite
   (renew only); runtime deps must make fresh `pip install -e .` serve.
+- 2026-10-05 ~21:3x UTC — Wave-2 DONE, full suite GREEN: 430 passed +
+  4 skipped (434 collected), 0 failed (138s). Fixers: API stubs→real
+  (+10 tests), FTS unified + CLI single-source (+7), deps/alembic/docker/
+  termux-guest-vars/backup-checkpoint (+deploy tests, fresh-venv verified),
+  MCP kind-lookup + arg-preserving probe (+5), MANAGER-PLAN single-phase +
+  decisions v2 (10 rulings). Left for user-run (never verifiable here):
+  ruff + docker build/run (commands below in chat).
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint

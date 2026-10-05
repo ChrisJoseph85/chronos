@@ -4,6 +4,12 @@ Version: 2.0.0
 Summary: Chronos backend — REST + WebSocket + MCP, no web UI
 License: MIT
 Requires-Python: >=3.14
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: argon2-cffi
+Requires-Dist: websockets
+Requires-Dist: python-multipart
+Requires-Dist: alembic
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: ruff; extra == "dev"

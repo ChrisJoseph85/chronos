@@ -1,3 +1,9 @@
+fastapi
+uvicorn
+argon2-cffi
+websockets
+python-multipart
+alembic
 
 [dev]
 pytest
