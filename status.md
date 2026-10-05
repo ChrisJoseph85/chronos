@@ -67,6 +67,24 @@ proven-incomplete files, re-dispatch missing.
   Pinned version for brief: 3.14.7 (both interpreters; requires-python >=3.14).
   Queued fix-loop (after these two): Ph2 NOW_MS constant, Ph3 health-test
   conflict, Ph4 CLI --version + 6 missing commands, Ph4/Ph6 re-verify.
+- 2026-10-05 ~20:1x UTC — Both reported (stopped, nothing committed by them):
+  - Termux-uv fix: DONE. termux.sh rewritten (pkg bootstraps proot-distro
+    only; DISTRO=ubuntu default + check-before-install; uv + `uv python
+    install 3.14.7` + venv + install all inside distro; wake-lock before
+    serve; 274 MB fetch with progress inside distro). docs/termux.md honest
+    (naming constraint + Verified/Not-verified; nothing here executes
+    proot-distro/pkg/device-uv). Termux CI tests: 15 passed + 1 skipped.
+    Full phase_6: 24 passed + 2 skipped + 3 failed = only CLI F1–F3 remain
+    (Phase 4 files, untouched); smoke.sh assertion now PASSES.
+  - Merge 1+2: DONE. tests/phase_2/* → tests/phase_1/test_ai_* (bodies
+    byte-identical), tests/phase_2/ deleted, new doc
+    phases/phase-1-foundation.md (migration note + parts 1.1–1.14 +
+    ownership-proposal), old phase-1-core.md + phase-2-ai.md deleted.
+    Merged collect = 152 (84+68 ✅); run = 151 passed + 1 failed (only the
+    known wrong-NOW_MS, signature matches, not fixed).
+  - Disk collect now: 393 (was 387; +6 new Termux pinning tests).
+  - MANAGER-PLAN.md ownership table NOT yet updated (frozen doc — needs your
+    explicit go to amend + mirror Ph2 ruling to decisions.md).
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint

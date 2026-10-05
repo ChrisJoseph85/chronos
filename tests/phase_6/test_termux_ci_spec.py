@@ -9,11 +9,16 @@ Spec: docs/server/Chronos.md §8.1 (targets), §11 (doze/wake-lock, /api/health,
   docs/docker.md + docs/termux.md),
   docs/server/decisions.md 2026-10-05 freeze §5 (smoke.sh gate).
 
+Termux flow (spec change): Termux's own python must NEVER run the app.
+`pkg` bootstraps proot-distro only; the app runs INSIDE the distro via
+uv with pinned python 3.14.7.
+
 Honesty: no Android/Termux pkg, no systemd, no Docker daemon here — on-device
 behaviours skip with a reason, never claim pass.
 """
 
 import os
+import re
 import stat
 from pathlib import Path
 
@@ -165,3 +170,92 @@ def test_termux_on_device_install_requires_android():
         pytest.skip("no Termux/Android on this host (no /data/data/com.termux, no pkg)")
     text = _read(TERMUX_SH)
     assert "termux-wake-lock" in text
+
+
+# --- New Termux flow: proot-distro guest owns the app, never Termux python ---
+
+
+def test_termux_proot_distro_check_before_install():
+    """pkg bootstraps proot-distro only; instance is check-before-install."""
+    text = _read(TERMUX_SH)
+    assert "proot-distro" in text, "scripts/termux.sh must use proot-distro"
+    assert "proot-distro list" in text, "must check `proot-distro list` first"
+    assert "proot-distro install" in text, "must install the distro when missing"
+    list_idx = text.find("proot-distro list")
+    install_idx = text.find("proot-distro install")
+    assert list_idx < install_idx, (
+        "proot-distro check (list) must come before install"
+    )
+    assert "CHRONOS_DISTRO" in text, "distro must be overridable via CHRONOS_DISTRO"
+
+
+def test_termux_uv_install_and_python_pin():
+    """uv is installed inside the distro; python is pinned to 3.14.x."""
+    text = _read(TERMUX_SH)
+    assert "uv" in text, "scripts/termux.sh must install/use uv inside the distro"
+    assert "uv python install" in text, "must run `uv python install` in the distro"
+    assert "3.14" in text, "must pin python 3.14.x (default 3.14.7)"
+    assert "3.14.7" in text, "must pin exact interpreter 3.14.7 by default"
+    assert "CHRONOS_PYTHON" in text, "pin must be overridable via CHRONOS_PYTHON"
+    assert "uv venv" in text, "must create the venv via `uv venv`"
+    assert re.search(r"uv pip install.*-e\s*\.", text), (
+        "must install the app via `uv pip install -e .`"
+    )
+
+
+def test_termux_no_termux_python_for_app():
+    """Termux's own python must NEVER run the app: no pkg python-for-app path."""
+    text = _read(TERMUX_SH)
+    assert "pkg install python" not in text, (
+        "must not install app python via `pkg install python`"
+    )
+    assert not re.search(r"pkg install[^\n]*python", text), (
+        "must not carry any `pkg install ... python` app path"
+    )
+
+
+def test_termux_doctor_detects_proot_distro_and_instance():
+    """doctor must detect proot-distro + instance presence."""
+    text = _read(TERMUX_SH)
+    assert "proot-distro" in text
+    doctor_idx = text.find("cmd_doctor")
+    assert doctor_idx >= 0, "scripts/termux.sh must keep a doctor subcommand"
+    doctor_block = text[doctor_idx:]
+    assert "proot-distro" in doctor_block, "doctor must report proot-distro"
+    assert "proot-distro list" in doctor_block, (
+        "doctor must check instance presence via `proot-distro list`"
+    )
+
+
+def test_termux_run_serves_inside_distro_behind_wake_lock():
+    """run takes termux-wake-lock outside, then serves inside the distro."""
+    text = _read(TERMUX_SH)
+    assert "proot-distro login" in text, "run must enter the distro to serve"
+    wake_idx = text.find("termux-wake-lock")
+    login_idx = text.find("proot-distro login")
+    assert wake_idx >= 0 and login_idx >= 0
+    assert wake_idx < login_idx, (
+        "wake lock (Termux side) must precede distro login/serve"
+    )
+    assert "chronos serve" in text, "must still start `chronos serve` (inside distro)"
+    assert "/api/health" in text, "status must still poll /api/health"
+
+
+def test_termux_docs_proot_distro_naming_and_pins():
+    """docs must give exact commands + honest distro-naming constraint."""
+    md_path = _resolve_md(TERMUX_MD, ALT_TERMUX_MD)
+    md_text = _read(md_path)
+    assert "proot-distro" in md_text
+    assert "proot-distro list" in md_text
+    assert "3.14.7" in md_text, "docs must state the exact 3.14.7 pin"
+    assert "uv python install" in md_text
+    lower = md_text.lower()
+    assert "names instances by distro" in lower or "named" in lower and "distro" in lower, (
+        "docs must state the naming constraint honestly"
+    )
+    assert "verified-here" in lower or "verified here" in lower.replace("-", " "), (
+        "docs must keep a Verified-here section"
+    )
+    assert "not-verified-here" in lower or "not verified" in lower, (
+        "docs must keep a Not-verified-here section"
+    )
