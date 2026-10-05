@@ -120,6 +120,11 @@ proven-incomplete files, re-dispatch missing.
   bypass + signature probe, series/checkout edge cases, termux.sh
   host/guest var expansion + venv activation, backup.sh hot-cp.
   Reports kept terse per user order (40-line caps, findings only).
+- 2026-10-05 ~20:5x UTC — User order: API replaces `chronos setup` (spec
+  §5.1 + B.3: STT → N text in failover order → embeddings). Keys write-only
+  (add/delete by id, never viewed/edited). Dynamic DB store, no .env.
+  API.md version bump. Then: manager starts server, verifier AI checks all
+  via API with instance key.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
