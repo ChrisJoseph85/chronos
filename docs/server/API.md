@@ -1,4 +1,4 @@
-# Chronos backend API — frozen (backend-only)
+# Chronos backend API — frozen (backend-only) — v1.1 amendment 2026-10-05 (providers)
 
 **2026-10-05. This is the contract your 3-4 clients build against in parallel. It does not change without a version bump. No web UI. REST + WebSocket + MCP only.**
 
@@ -66,3 +66,23 @@ curl -fsS http://127.0.0.1:8080/api/health
 ```
 
 Docker (unverified here, CI-owned): `docker compose up --build`, volume `chronos-data:/data`, `.env` via `env_file required:false`, healthcheck `/api/health`.
+
+## Providers (v1.1 amendment 2026-10-05)
+
+Full replacement for `chronos setup` (Chronos.md §5.1 + proposals B.3). The GUI drives these routes with the instance key. `GET /api/health` stays the only open route; every route below 401s without a valid key.
+
+```
+GET    /api/providers -> {stt:[...], text:[...ordered], embeddings:[...]}
+POST   /api/providers {group, name, base_url, model?, position?} -> entry (422 bad group/URL)
+PUT    /api/providers/{id} {name?, base_url?, model?, position?} -> entry (reorder allowed; 422 if any key field present)
+DELETE /api/providers/{id} -> {deleted, id} (keys removed via CASCADE)
+POST   /api/providers/{id}/keys {key} -> {key_id} only
+DELETE /api/providers/{id}/keys/{key_id} -> {deleted, key_id}
+POST   /api/providers/active {group, id} -> entry (switch active provider per group)
+POST   /api/providers/{id}/check -> {id, reachable, models[]}
+POST   /api/providers/check-all -> {results:[{id, reachable, models[]}]} (one failure never fails others)
+```
+
+Setup order (§5.1): step 1 STT endpoint+model+keys, step 2 N text providers in order+keys, step 3 embeddings endpoint+model. Entry order (`position`) = failover order; `GET` returns `text` in failover order. Multiple keys per endpoint are tried round-robin before falling through.
+
+Write-only-key rule: key VALUES live in SQLite (`provider_keys.key_value`; server sends them outward; protect the DB file). The API NEVER returns a key value — entries carry `key_ids` + `key_count` only, and there is NO GET key-values route. No `.env` anywhere in this feature: `chronos setup` is a thin HTTP wrapper that prompts for server URL + instance key, walks the 3 steps over this API, and prints `key_id`s, never values.

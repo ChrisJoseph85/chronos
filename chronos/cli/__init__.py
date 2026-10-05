@@ -305,8 +305,120 @@ def cmd_serve(args) -> int:
 
 
 def cmd_setup(args) -> int:
-    print("chronos setup: configure providers via .env (TEXT/STT/EMBEDDINGS).")
-    print("Order entered is failover order. See docs for keys.")
+    import getpass
+
+    def _prompt(label: str, default: str = "") -> str:
+        suffix = f" [{default}]" if default else ""
+        try:
+            value = input(f"{label}{suffix}: ").strip()
+        except EOFError:
+            return default
+        return value or default
+
+    def _call(base: str, key: str, method: str, route: str, payload: dict | None = None):
+        import urllib.request as _request
+        import urllib.error as _error
+
+        url = base.rstrip("/") + route
+        headers = {"Content-Type": "application/json", "X-Chronos-Key": key}
+        data = json.dumps(payload).encode() if payload is not None else None
+        req = _request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with _request.urlopen(req, timeout=15) as resp:
+                body = resp.read().decode("utf-8", "replace")
+        except _error.HTTPError as exc:
+            try:
+                detail = exc.read().decode("utf-8", "replace")
+            except Exception:
+                detail = ""
+            print(f"chronos setup: {route} failed: HTTP {exc.code} {detail}", file=sys.stderr)
+            return None
+        except Exception as exc:
+            print(f"chronos setup: {route} failed: {exc}", file=sys.stderr)
+            return None
+        try:
+            return json.loads(body) if body.strip() else {}
+        except json.JSONDecodeError:
+            return {"raw": body}
+
+    print("chronos setup: configure providers on the server (Chronos.md §5.1).")
+    print("Keys are write-only: the server stores them, the API never returns values.")
+    base = _prompt("server URL", "http://127.0.0.1:8080")
+    try:
+        supplied = getpass.getpass("instance key: ").strip()
+    except Exception:
+        supplied = _prompt("instance key")
+    if not supplied:
+        return _fail("instance key is required")
+    # Step 1: STT endpoint + model + keys (§5.1 step 1).
+    print("step 1/3: speech-to-text provider")
+    stt_name = _prompt("STT name", "stt") or "stt"
+    stt_url = _prompt("STT base_url", "https://stt.local/v1")
+    stt_model = _prompt("STT model", "whisper-large-v3-turbo")
+    stt = _call(base, supplied, "POST", "/api/providers",
+                {"group": "stt", "name": stt_name, "base_url": stt_url, "model": stt_model})
+    if stt is None:
+        return 1
+    while True:
+        try:
+            secret = getpass.getpass(f"STT key (blank to finish): ").strip()
+        except Exception:
+            secret = _prompt("STT key (blank to finish)")
+        if not secret:
+            break
+        created = _call(base, supplied, "POST", f"/api/providers/{stt['id']}/keys", {"key": secret})
+        if created is not None:
+            print(f"STT key stored: {created.get('key_id')}")
+    # Step 2: N text providers in order; entry order = failover order (§5.1 step 2).
+    print("step 2/3: text providers (entry order = failover order; multiple keys round-robin)")
+    position = 0
+    while True:
+        another = _prompt("add a text provider? [y/n]", "y" if position == 0 else "n")
+        if another.lower() not in ("y", "yes"):
+            if position == 0:
+                print("at least one text provider is recommended; continuing anyway.")
+                break
+            break
+        name = _prompt("text provider name", "groq") or "groq"
+        url = _prompt("text base_url", "https://api.groq.com/openai/v1")
+        model = _prompt("text model", "openai/gpt-oss-120b")
+        entry = _call(base, supplied, "POST", "/api/providers",
+                      {"group": "text", "name": name, "base_url": url,
+                       "model": model, "position": position})
+        if entry is None:
+            return 1
+        position += 1
+        while True:
+            try:
+                secret = getpass.getpass(f"text key for {name} (blank to finish): ").strip()
+            except Exception:
+                secret = _prompt(f"text key for {name} (blank to finish)")
+            if not secret:
+                break
+            created = _call(base, supplied, "POST",
+                            f"/api/providers/{entry['id']}/keys", {"key": secret})
+            if created is not None:
+                print(f"text key stored: {created.get('key_id')}")
+    # Step 3: embeddings endpoint + model (§5.1 step 3).
+    print("step 3/3: embeddings provider")
+    emb_name = _prompt("embeddings name", "embeddings") or "embeddings"
+    emb_url = _prompt("embeddings base_url", "http://127.0.0.1:11434/v1")
+    emb_model = _prompt("embeddings model", "llama-embedding")
+    emb = _call(base, supplied, "POST", "/api/providers",
+                {"group": "embeddings", "name": emb_name, "base_url": emb_url, "model": emb_model})
+    if emb is None:
+        return 1
+    while True:
+        try:
+            secret = getpass.getpass("embeddings key (blank to finish): ").strip()
+        except Exception:
+            secret = _prompt("embeddings key (blank to finish)")
+        if not secret:
+            break
+        created = _call(base, supplied, "POST", f"/api/providers/{emb['id']}/keys", {"key": secret})
+        if created is not None:
+            print(f"embeddings key stored: {created.get('key_id')}")
+    print("chronos setup: done (key values never printed; only key_ids shown).")
     return 0
 
 

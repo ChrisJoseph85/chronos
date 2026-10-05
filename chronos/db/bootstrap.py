@@ -151,6 +151,26 @@ BEGIN
 END""",
     # FTS5 regular table (2026-10-05 freeze): narrow OperationalError only at query time.
     "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title, notes)",
+    # Provider management (v1.1 amendment 2026-10-05): server-side store, no .env.
+    # Key VALUES live in SQLite; the API never returns them (write-only).
+    """CREATE TABLE IF NOT EXISTS providers (
+    id         TEXT PRIMARY KEY,
+    grp        TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    base_url   TEXT NOT NULL,
+    model      TEXT NOT NULL,
+    position   INTEGER NOT NULL,
+    active     INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+)""",
+    "CREATE INDEX IF NOT EXISTS ix_providers_grp_pos ON providers(grp, position)",
+    """CREATE TABLE IF NOT EXISTS provider_keys (
+    id          TEXT PRIMARY KEY,
+    provider_id TEXT NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+    key_value   TEXT NOT NULL,
+    created_at  INTEGER NOT NULL
+)""",
+    "CREATE INDEX IF NOT EXISTS ix_provider_keys_provider ON provider_keys(provider_id)",
 ]
 
 SCHEMA_STATEMENTS = DDL_STATEMENTS

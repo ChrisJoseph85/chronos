@@ -1242,6 +1242,261 @@ async def get_health(request: Request) -> JSONResponse:
 
 
 # ---------------------------------------------------------------------------
+# Providers (v1.1 amendment 2026-10-05): full replacement for `chronos setup`.
+# Keys are WRITE-ONLY: values live in SQLite, never appear in any response.
+# Entry order (position) = failover order; multi-key round-robin per adapter.
+# ---------------------------------------------------------------------------
+
+_PROVIDER_GROUPS = ("stt", "text", "embeddings")
+_PROVIDER_KEY_FIELDS = ("key", "keys", "key_value", "api_key", "api_keys")
+
+
+def _provider_registry(request: Request):  # type: ignore[no-untyped-def]
+    from chronos.ai.providers.registry import ProviderRegistry
+
+    return ProviderRegistry(_connect(request))
+
+
+def _provider_transport(request: Request):
+    return getattr(request.app.state, "provider_transport", None)
+
+
+def _provider_conn(request: Request) -> sqlite3.Connection:
+    return _connect(request)
+
+
+@router.get("/api/providers")
+async def get_providers(request: Request) -> JSONResponse:
+    await _require_auth(request)
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        return JSONResponse(reg.list_grouped())
+    finally:
+        conn.close()
+
+
+@router.post("/api/providers")
+async def post_provider(request: Request) -> JSONResponse:
+    await _require_auth(request)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="invalid JSON body")
+    payload = payload or {}
+    group = payload.get("group", payload.get("grp"))
+    name = payload.get("name")
+    base_url = payload.get("base_url")
+    model = payload.get("model")
+    position = payload.get("position")
+    if group not in _PROVIDER_GROUPS:
+        raise HTTPException(status_code=422, detail="bad group")
+    if not isinstance(base_url, str) or not (
+        base_url.strip().startswith("http://") or base_url.strip().startswith("https://")
+    ):
+        raise HTTPException(status_code=422, detail="bad base_url")
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        try:
+            entry = reg.create_provider(group, name, base_url, model, position)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc) or "invalid provider")
+        conn.commit()
+        return JSONResponse(entry)
+    finally:
+        conn.close()
+
+
+@router.put("/api/providers/{provider_id}")
+async def put_provider(provider_id: str, request: Request) -> JSONResponse:
+    await _require_auth(request)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="invalid JSON body")
+    payload = payload or {}
+    for field in _PROVIDER_KEY_FIELDS:
+        if field in payload:
+            raise HTTPException(status_code=422, detail="keys are write-only: use /keys routes")
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        if reg.get_provider(provider_id) is None:
+            raise HTTPException(status_code=404, detail="provider not found")
+        if "base_url" in payload:
+            bu = payload["base_url"]
+            if not isinstance(bu, str) or not (
+                bu.strip().startswith("http://") or bu.strip().startswith("https://")
+            ):
+                raise HTTPException(status_code=422, detail="bad base_url")
+        try:
+            entry = reg.update_provider(
+                provider_id,
+                name=payload.get("name"),
+                base_url=payload.get("base_url"),
+                model=payload.get("model"),
+                position=payload.get("position"),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc) or "invalid provider")
+        conn.commit()
+        return JSONResponse(entry)
+    finally:
+        conn.close()
+
+
+@router.delete("/api/providers/{provider_id}")
+async def delete_provider(provider_id: str, request: Request) -> JSONResponse:
+    await _require_auth(request)
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        if reg.get_provider(provider_id) is None:
+            raise HTTPException(status_code=404, detail="provider not found")
+        reg.delete_provider(provider_id)
+        conn.commit()
+        return JSONResponse({"deleted": True, "id": provider_id})
+    finally:
+        conn.close()
+
+
+@router.post("/api/providers/{provider_id}/keys")
+async def post_provider_key(provider_id: str, request: Request) -> JSONResponse:
+    await _require_auth(request)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="invalid JSON body")
+    payload = payload or {}
+    key = payload.get("key")
+    if not isinstance(key, str) or not key.strip():
+        raise HTTPException(status_code=422, detail="key is required")
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        if reg.get_provider(provider_id) is None:
+            raise HTTPException(status_code=404, detail="provider not found")
+        try:
+            result = reg.add_key(provider_id, key)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc) or "invalid key")
+        conn.commit()
+        return JSONResponse(result)
+    finally:
+        conn.close()
+
+
+@router.delete("/api/providers/{provider_id}/keys/{key_id}")
+async def delete_provider_key(provider_id: str, key_id: str, request: Request) -> JSONResponse:
+    await _require_auth(request)
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        if reg.get_provider(provider_id) is None:
+            raise HTTPException(status_code=404, detail="provider not found")
+        ok = reg.delete_key(provider_id, key_id)
+        if not ok:
+            raise HTTPException(status_code=404, detail="key not found")
+        conn.commit()
+        return JSONResponse({"deleted": True, "key_id": key_id})
+    finally:
+        conn.close()
+
+
+@router.post("/api/providers/active")
+async def post_provider_active(request: Request) -> JSONResponse:
+    await _require_auth(request)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="invalid JSON body")
+    payload = payload or {}
+    group = payload.get("group", payload.get("grp"))
+    pid = payload.get("id")
+    if group not in _PROVIDER_GROUPS:
+        raise HTTPException(status_code=422, detail="bad group")
+    if not pid:
+        raise HTTPException(status_code=422, detail="id is required")
+    conn = _provider_conn(request)
+    try:
+        from chronos.ai.providers.registry import ProviderRegistry
+
+        reg = ProviderRegistry(conn)
+        if reg.get_provider(str(pid)) is None:
+            raise HTTPException(status_code=404, detail="provider not found")
+        try:
+            entry = reg.set_active(group, str(pid))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc) or "invalid active switch")
+        conn.commit()
+        return JSONResponse(entry)
+    finally:
+        conn.close()
+
+
+@router.post("/api/providers/check-all")
+async def post_providers_check_all(request: Request) -> JSONResponse:
+    await _require_auth(request)
+    from chronos.ai.providers.registry import ProviderRegistry, discover_models
+
+    transport = _provider_transport(request)
+    conn = _provider_conn(request)
+    try:
+        reg = ProviderRegistry(conn)
+        results = []
+        for entry in reg.list_providers():
+            try:
+                values = reg.key_values(entry["id"])
+                key = values[0] if values else None
+                outcome = discover_models(entry["base_url"], key, transport)
+                results.append(
+                    {"id": entry["id"], "reachable": bool(outcome.get("reachable")),
+                     "models": list(outcome.get("models") or [])}
+                )
+            except Exception:
+                results.append({"id": entry["id"], "reachable": False, "models": []})
+        return JSONResponse({"results": results})
+    finally:
+        conn.close()
+
+
+@router.post("/api/providers/{provider_id}/check")
+async def post_provider_check(provider_id: str, request: Request) -> JSONResponse:
+    await _require_auth(request)
+    from chronos.ai.providers.registry import ProviderRegistry, discover_models
+
+    transport = _provider_transport(request)
+    conn = _provider_conn(request)
+    try:
+        reg = ProviderRegistry(conn)
+        entry = reg.get_provider(provider_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="provider not found")
+        values = reg.key_values(provider_id)
+        key = values[0] if values else None
+        outcome = discover_models(entry["base_url"], key, transport)
+        return JSONResponse(
+            {"id": provider_id, "reachable": bool(outcome.get("reachable")),
+             "models": list(outcome.get("models") or [])}
+        )
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
 # WebSocket /ws (auth before accept; reject = 4001)
 # ---------------------------------------------------------------------------
 
