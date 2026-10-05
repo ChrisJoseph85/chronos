@@ -135,6 +135,8 @@ proven-incomplete files, re-dispatch missing.
     unreachable:false, check-all isolates, active switch, cascade 404,
     say→event, timer 409, briefing 200, PUT-key→422.
   - Server torn down, /tmp/prov-check.db removed. No .env created anywhere.
+- 2026-10-05 ~21:1x UTC — Full suite re-run post-provider: 403 passed +
+  2 skipped (405 collected), 0 failed. Suite is GREEN.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
