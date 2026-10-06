@@ -186,3 +186,4 @@ proven-incomplete files, re-dispatch missing.
 1. Batch 1 gate: phases 5+6 tests land → verify 6 suites collect + are red.
 2. Batch 2: code agents [1..6] (max 4 at once, rolling) — only after Batch 1 stopped.
 3. Fix loop + incremental integrate 1 → 1+2 → … → +6 + smoke.sh 8099.
+- 2026-10-06 ~10:3x UTC — User GO: Electron wrapper (same web UI, Win/Mac/Linux, auto-launch, native notifications). Snapshot, one builder.
