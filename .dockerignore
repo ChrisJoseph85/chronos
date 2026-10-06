@@ -1,6 +1,8 @@
 *
 !pyproject.toml
 !chronos/
+!alembic.ini
+!alembic/
 .env
 .env.*
 *.db

@@ -131,6 +131,43 @@ def test_backup_parses_and_checkpoints_wal_before_copy():
     assert "date" in text, "backup.sh copies must be timestamped via date"
 
 
+def test_dockerfile_copy_sources_in_build_context():
+    """Every Dockerfile COPY source must survive .dockerignore.
+
+    Regression: builder COPY of alembic.ini/alembic failed with
+    '"/alembic": not found' because the allowlist .dockerignore excluded
+    them from the build context. Spec: phases/phase-1-foundation.md parts
+    1.29-1.30 (image builds from the repository).
+    """
+    import fnmatch
+
+    dockerfile = _read(REPO_ROOT / "Dockerfile")
+    patterns = [
+        line.strip()
+        for line in _read(REPO_ROOT / ".dockerignore").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+    def included(rel: str) -> bool:
+        # Last matching pattern wins; '!' negates (re-includes).
+        result = True  # default: included unless excluded
+        for pat in patterns:
+            negated = pat.startswith("!")
+            body = pat[1:] if negated else pat
+            if fnmatch.fnmatch(rel, body) or fnmatch.fnmatch(rel, body.rstrip("/") + "/*"):
+                result = negated
+        return result
+
+    missing = []
+    for line in dockerfile.splitlines():
+        parts = line.split()
+        if len(parts) >= 3 and parts[0] == "COPY" and not parts[1].startswith("--"):
+            for src in parts[1:-1]:
+                if not included(src):
+                    missing.append(src)
+    assert not missing, f"Dockerfile COPY sources excluded by .dockerignore: {missing}"
+
+
 def test_docker_build_and_run_require_daemon():
     """Spec phase-6-deploy.md Verification: image build/run needs a daemon."""
     if shutil.which("docker") is None:
