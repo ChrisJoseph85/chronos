@@ -150,12 +150,19 @@ def test_dockerfile_copy_sources_in_build_context():
 
     def included(rel: str) -> bool:
         # Last matching pattern wins; '!' negates (re-includes).
+        # Check both 'rel' and 'rel/' so directory exceptions ('!alembic/')
+        # match the directory itself, mirroring Docker dir semantics.
         result = True  # default: included unless excluded
         for pat in patterns:
             negated = pat.startswith("!")
             body = pat[1:] if negated else pat
-            if fnmatch.fnmatch(rel, body) or fnmatch.fnmatch(rel, body.rstrip("/") + "/*"):
-                result = negated
+            candidates = (rel, rel + "/") if not rel.endswith("/") else (rel,)
+            for cand in candidates:
+                if fnmatch.fnmatch(cand, body) or fnmatch.fnmatch(
+                    cand, body.rstrip("/") + "/*"
+                ):
+                    result = negated
+                    break
         return result
 
     missing = []
