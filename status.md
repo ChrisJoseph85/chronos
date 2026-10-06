@@ -191,3 +191,4 @@ proven-incomplete files, re-dispatch missing.
 - 2026-10-06 ~11:5x UTC — Subagents switched to Muse Spark (was MiMo); user GO on app2 4-way split. Snapshot, dispatch SHELL+UI-A+UI-B.
 - 2026-10-06 ~12:1x UTC — Restarted; project opencode.json removed (global muse-spark inherits). Dispatch SHELL+UI-A+UI-B.
 - 2026-10-06 ~13:2x UTC — User wants Google-style planner: day columns, morning-evening grid, expandable days, draggable buckets. Snapshot, questions, then dispatch.
+- 2026-10-06 ~13:4x UTC — User dropped design zip in repo root. Snapshot BEFORE even listing it; then reader agent summarizes + integration plan.
