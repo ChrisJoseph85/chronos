@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Chronos</string>
+    <string name="server_down">server is down — read-only cache</string>
+    <string name="shield_rationale">used only to detect a blocked app opening; no usage statistics are collected, stored, or sent anywhere.</string>
+</resources>

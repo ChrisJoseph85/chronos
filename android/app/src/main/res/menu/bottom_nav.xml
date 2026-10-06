@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Hard platform limit: BottomNavigationView supports MAX 5 items.
+         A 6th/7th item crashed the old app on launch. More holds the rest. -->
+    <item android:id="@+id/tab_home" android:title="Home" android:icon="@android:drawable/ic_menu_recent_history" />
+    <item android:id="@+id/tab_calendar" android:title="Calendar" android:icon="@android:drawable/ic_menu_my_calendar" />
+    <item android:id="@+id/tab_tasks" android:title="Tasks" android:icon="@android:drawable/ic_menu_agenda" />
+    <item android:id="@+id/tab_briefing" android:title="Briefing" android:icon="@android:drawable/ic_menu_day" />
+    <item android:id="@+id/tab_more" android:title="More" android:icon="@android:drawable/ic_menu_more" />
+</menu>

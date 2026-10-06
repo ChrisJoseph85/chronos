@@ -1,0 +1,19 @@
+[project]
+name = "chronos-desktop"
+version = "0.1.0"
+description = "Chronos desktop client (GTK4 + libadwaita, Omarchy/Hyprland)"
+requires-python = ">=3.10"
+dependencies = [
+  "websockets==15.0.1",
+  "PyGObject>=3.42",
+]
+
+[project.scripts]
+chronos-desktop = "desktop.app:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
