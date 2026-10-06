@@ -187,3 +187,4 @@ proven-incomplete files, re-dispatch missing.
 2. Batch 2: code agents [1..6] (max 4 at once, rolling) — only after Batch 1 stopped.
 3. Fix loop + incremental integrate 1 → 1+2 → … → +6 + smoke.sh 8099.
 - 2026-10-06 ~10:3x UTC — User GO: Electron wrapper (same web UI, Win/Mac/Linux, auto-launch, native notifications). Snapshot, one builder.
+- 2026-10-06 ~10:5x UTC — User approved electron spec (+per-screen AI voice+text like Android). Snapshot, dispatch direct-electron rebuild.
