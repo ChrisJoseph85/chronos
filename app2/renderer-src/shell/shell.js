@@ -207,6 +207,74 @@
     storeSet(SCREEN_KEY, name);
   }
 
+  // SHELL-THEME: rail footer widgets (DOM/class additions only).
+  // Static text / local-only values; zero network, zero fetch, zero logic
+  // changes to nav/collapse/splitters. Idempotent + fully guarded.
+  function ensureRailFooter(doc) {
+    try {
+      var sidebar = doc.getElementById('sidebar');
+      if (!sidebar) return;
+      if (sidebar.querySelector('[data-rail="footer"]')) return;
+      var footer = doc.createElement('div');
+      footer.className = 'rail-footer';
+      footer.setAttribute('data-rail', 'footer');
+
+      var pill = doc.createElement('div');
+      pill.className = 'status-pill is-online';
+      pill.setAttribute('data-rail', 'status');
+      pill.setAttribute('role', 'status');
+      var dot = doc.createElement('span');
+      dot.className = 'dot';
+      dot.setAttribute('aria-hidden', 'true');
+      var label = doc.createElement('span');
+      label.className = 'pill-label';
+      label.textContent = 'ENGINE ONLINE';
+      pill.appendChild(dot);
+      pill.appendChild(label);
+
+      var tele = doc.createElement('div');
+      tele.className = 'rail-telemetry';
+      tele.setAttribute('data-rail', 'telemetry');
+      var teleA = doc.createElement('div');
+      teleA.textContent = 'MEM 42% · LOCAL ONLY';
+      var teleB = doc.createElement('div');
+      teleB.className = 'tele-gold';
+      teleB.textContent = 'TELEMETRY NOMINAL';
+      tele.appendChild(teleA);
+      tele.appendChild(teleB);
+
+      var card = doc.createElement('div');
+      card.className = 'user-card';
+      card.setAttribute('data-rail', 'user');
+      var avatar = doc.createElement('span');
+      avatar.className = 'avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      avatar.textContent = 'OP';
+      var meta = doc.createElement('span');
+      meta.className = 'user-meta';
+      var name = doc.createElement('span');
+      name.className = 'user-name';
+      name.textContent = 'Operator';
+      var sub = doc.createElement('span');
+      sub.className = 'user-sub';
+      sub.textContent = 'Local session';
+      meta.appendChild(name);
+      meta.appendChild(sub);
+      card.appendChild(avatar);
+      card.appendChild(meta);
+
+      footer.appendChild(pill);
+      footer.appendChild(tele);
+      footer.appendChild(card);
+      var collapse = doc.getElementById('sidebar-collapse');
+      if (collapse && collapse.parentNode === sidebar) {
+        sidebar.insertBefore(footer, collapse);
+      } else {
+        sidebar.appendChild(footer);
+      }
+    } catch (_) { /* footer is decorative — never break shell */ }
+  }
+
   function initSidebar(doc) {
     var sidebar = doc.getElementById('sidebar');
     if (!sidebar) return;
@@ -267,6 +335,7 @@
     if (!doc) return;
     initTheme(doc);
     initSidebar(doc);
+    ensureRailFooter(doc);
     initSplitters(doc);
     var start = storeGet(SCREEN_KEY, 'planner');
     if (SCREENS.indexOf(start) === -1) start = 'planner';

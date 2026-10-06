@@ -92,14 +92,48 @@
   // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
   // :root theme variables with local fallbacks, so controls never render
   // as raw white when the theme palette has not landed.
+  // Blue default (--accent), gold complementary (--warn, #f5c042), red
+  // alerts (--danger). Never redefines the palette; text always
+  // var(--text) — never raw white.
   function polish(node, kind) {
     if (!node || !node.style) return node;
     try {
       if (kind === 'primary') {
         node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+      } else if (kind === 'gold') {
+        node.style.borderColor = 'var(--warn, #f5c042)';
+        node.style.color = 'var(--warn, #f5c042)';
+        node.style.boxShadow = 'var(--glow-sm, 0 0 6px rgba(245,192,66,.55))';
+      } else if (kind === 'card') {
+        node.style.background = 'var(--panel, #0a1626)';
+        node.style.border = '1px solid var(--border, #13415e)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.color = 'var(--text, #e8eaed)';
       }
     } catch (_) { /* styling only — never break clicks */ }
     return node;
+  }
+
+  // CYBER-HUD display helpers (styling only — pure local reads, no fetch).
+  // Progress % for Knowledge-Node cards: honors node.progress|pct|percent|
+  // completion (0..100) or boolean done|completed, else 0.
+  function nodePct(node) {
+    try {
+      var n = node || {};
+      var v = n.progress;
+      if (v == null) v = n.pct;
+      if (v == null) v = n.percent;
+      if (v == null) v = n.completion;
+      if (v == null) {
+        if (n.done === true || n.completed === true) return 100;
+        return 0;
+      }
+      v = Math.round(Number(v));
+      if (isNaN(v)) return 0;
+      if (v < 0) return 0;
+      if (v > 100) return 100;
+      return v;
+    } catch (_) { return 0; }
   }
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -236,12 +270,54 @@
       var k;
       for (k = 0; k < kids.length; k++) {
         (function (node) {
-          var li = el(doc, 'li', null, null);
-          li.style.marginLeft = (depth * 14) + 'px';
-          li.appendChild(doc.createTextNode(nodeTitle(node)));
+          // CYBER-HUD Knowledge-Node card (styling only): title/kind/tags
+          // rendering is unchanged; a % progress bar is appended.
+          var li = el(doc, 'li', 'node-card', null);
+          try {
+            li.style.marginLeft = (depth * 14) + 'px';
+            li.style.background = 'var(--panel, #0a1626)';
+            li.style.border = '1px solid var(--border, #13415e)';
+            li.style.borderLeft = '3px solid var(--accent, #4f9cf9)';
+            li.style.borderRadius = 'var(--radius, 8px)';
+            li.style.padding = '8px 10px';
+            li.style.listStyle = 'none';
+          } catch (_) { /* styling only */ }
+          var titleSpan = el(doc, 'span', 'node-title', nodeTitle(node));
+          try {
+            titleSpan.style.color = 'var(--text, #e8eaed)';
+            titleSpan.style.fontWeight = '600';
+          } catch (_) { /* styling only */ }
+          li.appendChild(titleSpan);
           li.appendChild(el(doc, 'span', 'node-kind', node.kind || 'node'));
           var tags = nodeTags(node);
           if (tags.length) li.appendChild(el(doc, 'span', 'node-tags', tags.join(', ')));
+          // Progress bar (display only — pct derived locally, no fetch).
+          var pct = nodePct(node);
+          var track = el(doc, 'div', 'node-progress', null);
+          try {
+            track.style.height = '6px';
+            track.style.marginTop = '6px';
+            track.style.borderRadius = '4px';
+            track.style.background = 'var(--panel-2, #23272f)';
+            track.style.border = '1px solid var(--border, #333945)';
+            track.style.overflow = 'hidden';
+          } catch (_) { /* styling only */ }
+          var fill = el(doc, 'div', 'node-progress-fill', null);
+          try {
+            fill.style.height = '100%';
+            fill.style.width = pct + '%';
+            fill.style.background = 'var(--warn, #f5c042)';
+            fill.style.boxShadow = 'var(--glow-sm, 0 0 6px rgba(245,192,66,.55))';
+          } catch (_) { /* styling only */ }
+          track.appendChild(fill);
+          li.appendChild(track);
+          var pctLabel = el(doc, 'span', 'node-pct', pct + '%');
+          try {
+            pctLabel.style.fontSize = '11px';
+            pctLabel.style.color = 'var(--muted, #7fa3b8)';
+            pctLabel.style.fontFamily = 'var(--mono, monospace)';
+          } catch (_) { /* styling only */ }
+          li.appendChild(pctLabel);
           parentEl.appendChild(li);
           if (node.id != null) appendLevel(parentEl, node.id, depth + 1);
         })(kids[k]);
@@ -269,6 +345,10 @@
     return out.sort();
   }
 
+  // CYBER-HUD tag chips with counts (styling only): accepts plain strings
+  // (unchanged chips — textContent stays the bare tag so click-through
+  // tests hold) or {tag|name, count} objects which render a gold count
+  // badge. Counts ride on data-count so shell CSS hooks apply.
   function renderTagList(doc, tagsEl, tags) {
     while (tagsEl.firstChild) tagsEl.removeChild(tagsEl.firstChild);
     if (!tags || !tags.length) {
@@ -276,7 +356,29 @@
       return;
     }
     tags.forEach(function (t) {
-      tagsEl.appendChild(el(doc, 'span', 'tag-chip', t));
+      var name = t;
+      var count = 0;
+      if (t && typeof t === 'object') {
+        name = t.tag != null ? t.tag : (t.name != null ? t.name : '');
+        count = +(t.count != null ? t.count : 0) || 0;
+      }
+      name = String(name);
+      var chip = el(doc, 'span', 'tag-chip', name);
+      try {
+        chip.style.borderColor = 'var(--accent, #4f9cf9)';
+        chip.style.color = 'var(--accent, #4f9cf9)';
+        if (count > 1) {
+          chip.setAttribute('data-count', String(count));
+          chip.title = name + ' × ' + count;
+          var badge = el(doc, 'span', 'tag-count', ' ×' + count);
+          badge.style.color = 'var(--warn, #f5c042)';
+          badge.style.fontFamily = 'var(--mono, monospace)';
+          badge.style.fontSize = '11px';
+          badge.style.marginLeft = '4px';
+          chip.appendChild(badge);
+        }
+      } catch (_) { /* styling only */ }
+      tagsEl.appendChild(chip);
     });
   }
 
@@ -643,6 +745,19 @@
         var b = el(doc, 'button', 'cal-day', String(day));
         b.type = 'button';
         b.setAttribute('data-date', isoDate(y, m, day));
+        // CYBER-HUD event-dots hook (class-only): empty flex row inside the
+        // day cell; paintMonth() fills dots from local events (no fetch).
+        // Button label/count/ids/handlers unchanged.
+        var dots = el(doc, 'span', 'event-dots', null);
+        try {
+          dots.setAttribute('aria-hidden', 'true');
+          dots.style.display = 'flex';
+          dots.style.gap = '2px';
+          dots.style.justifyContent = 'center';
+          dots.style.marginTop = '2px';
+          dots.style.minHeight = '6px';
+        } catch (_) { /* styling only */ }
+        b.appendChild(dots);
         b.addEventListener('click', function () { cbs.onDay(isoDate(y, m, day), b); });
         grid.appendChild(b);
       })(i);
@@ -684,6 +799,38 @@
         api.paint();
       },
     });
+    // CYBER-HUD event dots (display only — reads local st.events, no fetch):
+    // one gold/blue dot per event, capped at 3 per day cell.
+    try {
+      var counts = {};
+      (st.events || []).forEach(function (e) {
+        if (e && e.date) counts[e.date] = (counts[e.date] || 0) + 1;
+      });
+      var cells = mount.querySelectorAll('.cal-day[data-date]');
+      var ci;
+      for (ci = 0; ci < cells.length; ci++) {
+        (function (cell) {
+          var n = counts[cell.getAttribute('data-date')] || 0;
+          var box = cell.querySelector('.event-dots');
+          if (!box || !n) return;
+          var shown = Math.min(3, n);
+          var di;
+          for (di = 0; di < shown; di++) {
+            var dot = el(doc, 'span', 'event-dot', null);
+            dot.style.display = 'inline-block';
+            dot.style.width = '6px';
+            dot.style.height = '6px';
+            dot.style.borderRadius = '50%';
+            dot.style.background = (di === 0)
+              ? 'var(--warn, #f5c042)'
+              : 'var(--accent, #4f9cf9)';
+            dot.style.boxShadow = 'var(--glow-sm, 0 0 6px rgba(245,192,66,.55))';
+            box.appendChild(dot);
+          }
+          cell.title = n + (n === 1 ? ' event' : ' events');
+        })(cells[ci]);
+      }
+    } catch (_) { /* dots are decorative — never break paint */ }
   }
 
   function paintYear(doc, mount, api) {
@@ -800,11 +947,22 @@
       [[stripEl, 'strip'], [sideEl, 'side']].forEach(function (pair) {
         var box = pair[0];
         if (!box) return;
-        var n = el(doc, 'div', 'tag-chip bucket', bk.title);
+        // CYBER-HUD Buckets-for-day card (styling only): keeps tag-chip +
+        // bucket hooks for drag-drop, adds card surface + gold accent edge.
+        var n = el(doc, 'div', 'tag-chip bucket bucket-card', bk.title);
         n.setAttribute('data-kind', 'bucket');
         n.setAttribute('data-loc', pair[1]);
         n.style.cursor = 'move';
         n.title = 'Drag onto a day + hour to schedule';
+        try {
+          n.style.background = 'var(--panel, #0a1626)';
+          n.style.border = '1px solid var(--border, #13415e)';
+          n.style.borderLeft = '3px solid var(--warn, #f5c042)';
+          n.style.borderRadius = 'var(--radius, 8px)';
+          n.style.padding = '6px 10px';
+          n.style.color = 'var(--text, #e8eaed)';
+          n.style.boxShadow = 'var(--glow-sm, 0 0 6px rgba(245,192,66,.25))';
+        } catch (_) { /* styling only */ }
         makeDraggable(doc, api, n, bk.id, 'bucket');
         box.appendChild(n);
       });
@@ -830,6 +988,28 @@
     var screen = el(doc, 'div', 'screen planner-screen');
     screen.appendChild(el(doc, 'h2', null, 'Planner'));
     screen.appendChild(el(doc, 'p', 'sub', 'Offline — week grid renders locally; events and buckets load on demand.'));
+
+    // CYBER-HUD screen hooks (styling only — no palette redefinition, no
+    // fetch, no ids): selected-day glow, event dots, tag-count badges and
+    // node progress tracks consume shell vars with local fallbacks.
+    try {
+      var hudStyle = doc.createElement('style');
+      hudStyle.setAttribute('data-planner-hud', 'true');
+      hudStyle.textContent =
+        '.planner-screen .cal-day.selected{' +
+        'border-color:var(--warn, #f5c042) !important;' +
+        'box-shadow:var(--glow-md, 0 0 14px rgba(245,192,66,.55)), inset 0 0 12px rgba(245,192,66,.25) !important;' +
+        'color:var(--text, #e8eaed);}' +
+        '.planner-screen .day-head[aria-pressed="true"]{' +
+        'border-color:var(--warn, #f5c042) !important;' +
+        'box-shadow:var(--glow-sm, 0 0 6px rgba(245,192,66,.55)) !important;}' +
+        '.planner-screen .tag-chip[data-count]::after{' +
+        'content:" ×" attr(data-count);' +
+        'color:var(--warn, #f5c042);' +
+        'font-family:var(--mono, monospace);font-size:11px;margin-left:4px;}' +
+        '.planner-screen .event-dot{flex-shrink:0;}';
+      screen.appendChild(hudStyle);
+    } catch (_) { /* decorative — never break mount */ }
 
     // Toolbar: week nav + view switches + lazy loaders.
     var toolbar = el(doc, 'div', 'row planner-toolbar', null);

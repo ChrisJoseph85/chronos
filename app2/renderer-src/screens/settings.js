@@ -141,26 +141,50 @@
 
   // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
   // :root theme variables with local fallbacks, so controls never render
-  // as raw white when the theme palette has not landed.
+  // as raw white when the theme palette has not landed. Palette owned by
+  // shell.css — never redefine --accent/--warn/--danger here (blue default
+  // via --accent, gold complementary via --warn/#f5c042, red alerts via
+  // --danger).
   function polish(node, kind) {
     if (!node || !node.style) return node;
     try {
       if (kind === 'primary') {
-        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+        node.style.boxShadow = 'var(--glow-md, var(--accent-glow, 0 0 10px rgba(79,156,249,.35)))';
       } else if (kind === 'banner') {
-        node.style.background = 'var(--danger-tint, #3d1f1d)';
+        node.style.background = 'var(--danger-tint, rgba(255,82,82,.10))';
         node.style.border = '1px solid var(--danger, #e5534b)';
         node.style.color = 'var(--banner-text, #ffd7d5)';
         node.style.borderRadius = 'var(--radius, 8px)';
         node.style.padding = '8px 12px';
         node.style.margin = '8px 0';
       } else if (kind === 'field') {
-        node.style.background = 'var(--bg, #14161a)';
+        node.style.background = 'var(--bg-2, var(--bg, #14161a))';
         node.style.border = '1px solid var(--border, #333945)';
         node.style.borderRadius = 'var(--radius, 8px)';
         node.style.color = 'var(--text, #e8eaed)';
         node.style.padding = '7px 9px';
         node.style.fontSize = '13px';
+      } else if (kind === 'deck') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, rgba(14,30,51,.95)), var(--panel, rgba(8,18,33,.95)))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '12px';
+        node.style.marginBottom = '12px';
+        node.style.boxShadow = 'inset 0 0 24px var(--accent-dim, rgba(0,212,255,.05))';
+      } else if (kind === 'deck-gold') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, rgba(14,30,51,.95)), var(--panel, rgba(8,18,33,.95)))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderLeft = '3px solid var(--warn, #f5c042)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '12px';
+        node.style.marginBottom = '12px';
+      } else if (kind === 'deck-alert') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, rgba(14,30,51,.95)), var(--panel, rgba(8,18,33,.95)))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderLeft = '3px solid var(--danger, #e5534b)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '12px';
+        node.style.marginBottom = '12px';
       } else if (kind === 'pill') {
         node.style.display = 'inline-flex';
         node.style.alignItems = 'center';
@@ -175,9 +199,38 @@
         node.style.accentColor = 'var(--accent, #4f9cf9)';
         node.style.width = '16px';
         node.style.height = '16px';
+      } else if (kind === 'health-ok') {
+        node.style.background = 'var(--accent-dim, rgba(79,156,249,.10))';
+        node.style.border = '1px solid var(--accent, #4f9cf9)';
+        node.style.color = 'var(--accent, #4f9cf9)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '8px 12px';
+        node.style.margin = '8px 0 0';
+        node.style.fontFamily = 'var(--mono, monospace)';
+        node.style.fontSize = '12px';
+      } else if (kind === 'health-bad') {
+        node.style.background = 'var(--danger-tint, rgba(255,82,82,.10))';
+        node.style.border = '1px solid var(--danger, #e5534b)';
+        node.style.color = 'var(--danger, #e5534b)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '8px 12px';
+        node.style.margin = '8px 0 0';
+        node.style.fontFamily = 'var(--mono, monospace)';
+        node.style.fontSize = '12px';
       }
     } catch (_) { /* styling only — never break clicks */ }
     return node;
+  }
+
+  // Deck-title accent dot (styling only): blue default, gold for speech /
+  // notifications, red never used for titles (alerts stay in banners).
+  function deckTitle(doc, text, tone) {
+    var h = el(doc, 'h3', 'chronos-sub-title chronos-deck-title', (tone === 'gold' ? '◆ ' : '◇ ') + text);
+    try {
+      h.style.color = tone === 'gold' ? 'var(--warn, #f5c042)' : 'var(--accent, #4f9cf9)';
+      h.style.letterSpacing = '0.06em';
+    } catch (_) { /* ignore */ }
+    return h;
   }
 
   function authHeaders(ctx) {
@@ -246,9 +299,10 @@
       banner.textContent = '';
     }
 
-    // ---- 1. Server ----
-    var srvCard = el(doc, 'div', 'card');
-    srvCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Server'));
+    // ---- 1. Server deck ----
+    var srvCard = polish(el(doc, 'div', 'card chronos-deck chronos-server-deck'), 'deck');
+    srvCard.setAttribute('data-deck', 'server');
+    srvCard.appendChild(deckTitle(doc, 'Server', 'blue'));
     var srvRow = el(doc, 'div', 'chronos-row row');
     var urlInput = polish(el(doc, 'input', 'chronos-server-url'), 'field');
     urlInput.type = 'text';
@@ -277,8 +331,34 @@
     healthBanner.setAttribute('data-part', 'health');
     healthBanner.setAttribute('role', 'status');
     healthBanner.textContent = 'Health not checked yet.';
+    try {
+      healthBanner.style.background = 'var(--bg-2, #14161a)';
+      healthBanner.style.border = '1px solid var(--border, #333945)';
+      healthBanner.style.color = 'var(--muted, #7fa3b8)';
+      healthBanner.style.borderRadius = 'var(--radius, 8px)';
+      healthBanner.style.padding = '8px 12px';
+      healthBanner.style.margin = '8px 0 0';
+      healthBanner.style.fontFamily = 'var(--mono, monospace)';
+      healthBanner.style.fontSize = '12px';
+    } catch (_) { /* ignore */ }
     srvCard.appendChild(healthBanner);
     screen.appendChild(srvCard);
+
+    // Styling-only health mirror: same text logic, themed border/color.
+    // Never changes fetch/handler behavior.
+    function styleHealth(ok) {
+      try {
+        if (ok === true) {
+          healthBanner.style.border = '1px solid var(--accent, #4f9cf9)';
+          healthBanner.style.color = 'var(--accent, #4f9cf9)';
+          healthBanner.style.background = 'var(--accent-dim, rgba(79,156,249,.10))';
+        } else if (ok === false) {
+          healthBanner.style.border = '1px solid var(--danger, #e5534b)';
+          healthBanner.style.color = 'var(--danger, #e5534b)';
+          healthBanner.style.background = 'var(--danger-tint, rgba(255,82,82,.10))';
+        }
+      } catch (_) { /* ignore */ }
+    }
 
     saveBtn.addEventListener('click', function () {
       hideBanner();
@@ -288,6 +368,7 @@
       try { okK = storageSet('chronos.key', keyInput.value); } catch (_) { okK = false; }
       if (okU && okK) {
         healthBanner.textContent = 'Server settings saved locally.';
+        styleHealth(true);
         safeNotify('Chronos settings', 'Server settings saved.');
       } else {
         showBanner('Could not persist settings (storage unavailable).');
@@ -304,11 +385,16 @@
       }
       var base = baseUrlOf(ctx);
       healthBanner.textContent = 'Checking…';
+      try {
+        healthBanner.style.border = '1px solid var(--warn, #f5c042)';
+        healthBanner.style.color = 'var(--warn, #f5c042)';
+      } catch (_) { /* ignore */ }
       var p;
       try {
         p = fetchFn(base + '/api/health', { method: 'GET' });
       } catch (err) {
         healthBanner.textContent = 'Server down.';
+        styleHealth(false);
         showBanner('Health check failed: ' + (err && err.message ? err.message : err));
         return;
       }
@@ -316,18 +402,21 @@
         function (data) {
           var v = data && data.version ? ' v' + data.version : '';
           healthBanner.textContent = 'OK' + v + ' (' + (data && data.status ? data.status : 'ok') + ')';
+          styleHealth(true);
           safeNotify('Chronos health', 'Server OK' + v + '.');
         },
         function (err) {
           healthBanner.textContent = 'Server down.';
+          styleHealth(false);
           showBanner('Health check failed: ' + (err && err.message ? err.message : err));
         }
       );
     });
 
-    // ---- 2. Providers ----
-    var provCard = el(doc, 'div', 'card');
-    provCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Providers'));
+    // ---- 2. Providers deck ----
+    var provCard = polish(el(doc, 'div', 'card chronos-deck chronos-providers-deck'), 'deck');
+    provCard.setAttribute('data-deck', 'providers');
+    provCard.appendChild(deckTitle(doc, 'Providers', 'blue'));
     var provControls = el(doc, 'div', 'chronos-row row');
     var provRefresh = el(doc, 'button', 'chronos-btn btn', 'Refresh providers');
     provRefresh.type = 'button';
@@ -392,9 +481,18 @@
         any = true;
         provList.appendChild(el(doc, 'h4', 'chronos-provider-group-title', g));
         entries.forEach(function (entry, idx) {
-          var card = el(doc, 'div', 'chronos-provider card');
+          var card = el(doc, 'div', 'chronos-provider card chronos-provider-card');
           card.setAttribute('data-provider-id', String(entry.id));
           card.setAttribute('data-provider-group', g);
+          // Styling only: HUD panel treatment via consumed shell vars.
+          try {
+            card.style.background = 'var(--bg-2, #14161a)';
+            card.style.border = '1px solid var(--border, #333945)';
+            card.style.borderLeft = '3px solid var(--accent, #4f9cf9)';
+            card.style.borderRadius = 'var(--radius, 8px)';
+            card.style.padding = '8px 10px';
+            card.style.margin = '6px 0';
+          } catch (_) { /* ignore */ }
           var title = el(doc, 'span', 'chronos-provider-name',
             (entry.name || entry.id) + ' — ' + (entry.base_url || ''));
           card.appendChild(title);
@@ -656,9 +754,34 @@
       );
     });
 
-    // ---- 3. Autostart ----
-    var autoCard = el(doc, 'div', 'card');
-    autoCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Autostart'));
+    // ---- 3. Speech deck (grouped card; styling/DOM only, no fetch) ----
+    var speechCard = polish(el(doc, 'div', 'card chronos-deck chronos-speech-deck'), 'deck-gold');
+    speechCard.setAttribute('data-deck', 'speech');
+    speechCard.appendChild(deckTitle(doc, 'Speech', 'gold'));
+    var speechHint = el(doc, 'p', 'sub chronos-speech-hint',
+      'Voice input uses your STT provider group above; the mic button posts to /api/voice and stays gracefully disabled while the server is down.');
+    try {
+      speechHint.style.color = 'var(--muted, #7fa3b8)';
+      speechHint.style.fontSize = '12px';
+      speechHint.style.margin = '0';
+    } catch (_) { /* ignore */ }
+    speechCard.appendChild(speechHint);
+    var speechRow = el(doc, 'div', 'chronos-row row');
+    var speechChipStt = el(doc, 'span', 'tag-chip chronos-speech-chip', 'stt group');
+    try {
+      speechChipStt.style.borderColor = 'var(--warn, #f5c042)';
+      speechChipStt.style.color = 'var(--warn, #f5c042)';
+    } catch (_) { /* ignore */ }
+    var speechChipMic = el(doc, 'span', 'tag-chip chronos-speech-chip', 'mic → /api/voice');
+    speechRow.appendChild(speechChipStt);
+    speechRow.appendChild(speechChipMic);
+    speechCard.appendChild(speechRow);
+    screen.appendChild(speechCard);
+
+    // ---- 4. OS-integration deck (autostart; handler logic untouched) ----
+    var autoCard = polish(el(doc, 'div', 'card chronos-deck chronos-os-deck'), 'deck');
+    autoCard.setAttribute('data-deck', 'os-integration');
+    autoCard.appendChild(deckTitle(doc, 'OS integration', 'blue'));
     var autoRow = polish(el(doc, 'label', 'chronos-row check'), 'pill');
     var autoToggle = polish(el(doc, 'input', 'chronos-autostart'), 'check');
     autoToggle.type = 'checkbox';
@@ -694,9 +817,10 @@
       }
     });
 
-    // ---- 4. Notification toggles ----
-    var notifCard = el(doc, 'div', 'card');
-    notifCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Notifications'));
+    // ---- 5. Notifications deck ----
+    var notifCard = polish(el(doc, 'div', 'card chronos-deck chronos-notif-deck'), 'deck-gold');
+    notifCard.setAttribute('data-deck', 'notifications');
+    notifCard.appendChild(deckTitle(doc, 'Notifications', 'gold'));
     var notifToggles = {};
     NOTIFY_CATS.forEach(function (cat) {
       var row = polish(el(doc, 'label', 'chronos-row check'), 'pill');
@@ -722,8 +846,9 @@
 
     screen.appendChild(notifCard);
 
-    var aiCard = el(doc, 'div', 'card');
-    aiCard.appendChild(el(doc, 'h3', null, 'Ask Chronos'));
+    var aiCard = polish(el(doc, 'div', 'card chronos-deck'), 'deck');
+    aiCard.setAttribute('data-deck', 'ask');
+    aiCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Ask Chronos'));
     screen.appendChild(aiCard);
 
     container.appendChild(screen);

@@ -78,28 +78,103 @@
 
   // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
   // :root theme variables with local fallbacks, so controls never render
-  // as raw white when the theme palette has not landed.
+  // as raw white when the theme palette has not landed. Palette is owned
+  // by shell.css — never redefine --accent/--warn/--danger here, only
+  // consume them (blue default via --accent, gold complementary via
+  // --warn with #f5c042 fallback, red alerts via --danger).
+  // Kinds: 'primary' | 'banner' | 'field' | 'kpi' | 'kpi-gold' |
+  // 'kpi-alert' | 'insight' | 'deck' | 'chip' (all styling-only).
   function polish(node, kind) {
     if (!node || !node.style) return node;
     try {
       if (kind === 'primary') {
-        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+        node.style.boxShadow = 'var(--glow-md, var(--btn-glow, 0 0 10px rgba(79,156,249,.35)))';
       } else if (kind === 'banner') {
-        node.style.background = 'var(--danger-tint, #3d1f1d)';
+        node.style.background = 'var(--danger-tint, rgba(255,82,82,.10))';
         node.style.border = '1px solid var(--danger, #e5534b)';
         node.style.color = 'var(--banner-text, #ffd7d5)';
         node.style.borderRadius = 'var(--radius, 8px)';
         node.style.padding = '8px 12px';
         node.style.margin = '8px 0';
       } else if (kind === 'field') {
-        node.style.background = 'var(--bg, #14161a)';
+        node.style.background = 'var(--bg-2, var(--bg, #14161a))';
         node.style.border = '1px solid var(--border, #333945)';
         node.style.borderRadius = 'var(--radius, 8px)';
         node.style.color = 'var(--text, #e8eaed)';
         node.style.padding = '7px 9px';
         node.style.fontSize = '13px';
+      } else if (kind === 'deck') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, rgba(14,30,51,.95)), var(--panel, rgba(8,18,33,.95)))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '12px';
+        node.style.marginBottom = '12px';
+        node.style.boxShadow = 'inset 0 0 24px var(--accent-dim, rgba(0,212,255,.05))';
+      } else if (kind === 'kpi') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, #23272f), var(--panel, #1a1e26))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderLeft = '3px solid var(--accent, #4f9cf9)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.minWidth = '0';
+        node.style.boxShadow = 'var(--glow-sm, 0 0 6px rgba(79,156,249,.25))';
+      } else if (kind === 'kpi-gold') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, #23272f), var(--panel, #1a1e26))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderLeft = '3px solid var(--warn, #f5c042)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.minWidth = '0';
+        node.style.boxShadow = '0 0 6px var(--warn-glow, rgba(245,192,66,.25))';
+      } else if (kind === 'kpi-alert') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, #23272f), var(--panel, #1a1e26))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderLeft = '3px solid var(--danger, #e5534b)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.minWidth = '0';
+      } else if (kind === 'insight') {
+        node.style.background = 'var(--bg-2, var(--bg, #14161a))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.color = 'var(--text, #e8eaed)';
+      } else if (kind === 'chip') {
+        node.style.display = 'inline-block';
+        node.style.background = 'var(--accent-dim, rgba(79,156,249,.12))';
+        node.style.border = '1px solid var(--accent, #4f9cf9)';
+        node.style.borderRadius = '20px';
+        node.style.padding = '3px 10px';
+        node.style.margin = '2px 4px 2px 0';
+        node.style.fontSize = '12px';
+        node.style.color = 'var(--accent, #4f9cf9)';
       }
     } catch (_) { /* styling only — never break clicks */ }
+    return node;
+  }
+
+  // Styling-only helpers (no fetch, no handlers): apply Cyber-HUD accents
+  // via consumed shell variables. Never redefine palette.
+  function styleKpiLabel(node) {
+    try {
+      node.style.color = 'var(--muted, #7fa3b8)';
+      node.style.fontSize = '11px';
+      node.style.letterSpacing = '0.08em';
+      node.style.textTransform = 'uppercase';
+    } catch (_) { /* ignore */ }
+    return node;
+  }
+
+  function styleKpiValue(node, tone) {
+    try {
+      node.style.fontFamily = 'var(--mono, monospace)';
+      node.style.fontSize = '20px';
+      node.style.fontWeight = '700';
+      node.style.color = tone === 'gold' ? 'var(--warn, #f5c042)'
+        : tone === 'alert' ? 'var(--danger, #e5534b)'
+        : 'var(--accent, #4f9cf9)';
+      node.style.textShadow = 'var(--glow-sm, 0 0 6px rgba(79,156,249,.3))';
+    } catch (_) { /* ignore */ }
     return node;
   }
 
@@ -141,9 +216,11 @@
         if (y + barH > H) break;
         var r = rows[j];
         var bw = Math.max(2, ((W - labelW - 90) * r.value) / max);
-        try { ctx2d.fillStyle = '#4a90d9'; } catch (_) { /* ignore */ }
+        // Cyber-HUD palette (canvas cannot resolve var()): blue default
+        // bars, gold #f5c042 leader, ice-cyan labels. Hand-rolled rects stay.
+        try { ctx2d.fillStyle = j === 0 ? '#f5c042' : '#4a90d9'; } catch (_) { /* ignore */ }
         ctx2d.fillRect(labelW, y, bw, barH);
-        try { ctx2d.fillStyle = '#000'; } catch (_) { /* ignore */ }
+        try { ctx2d.fillStyle = '#d7f3ff'; } catch (_) { /* ignore */ }
         var label = String(r.label).slice(0, 22);
         ctx2d.fillText(label, 6, y + 15);
         ctx2d.fillText(fmtMs(r.value), labelW + bw + 6, y + 15);
@@ -182,8 +259,9 @@
       banner.textContent = '';
     }
 
-    var rangeCard = el(doc, 'div', 'card');
-    rangeCard.appendChild(el(doc, 'h3', null, 'Range'));
+    var rangeCard = polish(el(doc, 'div', 'card chronos-deck chronos-range-deck'), 'deck');
+    rangeCard.setAttribute('data-deck', 'range');
+    rangeCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Range'));
     var controls = el(doc, 'div', 'chronos-row row');
     var fromInput = polish(el(doc, 'input', 'chronos-from'), 'field');
     fromInput.type = 'date';
@@ -202,13 +280,72 @@
     rangeCard.appendChild(controls);
     screen.appendChild(rangeCard);
 
+    // --- Cyber-HUD KPI strip: 4 cards (styling/DOM only; values mirror the
+    // same /api/stats payload rendered into the summary below). ---
+    var kpiStrip = el(doc, 'div', 'chronos-kpi-strip');
+    kpiStrip.setAttribute('data-part', 'kpi-strip');
+    try {
+      kpiStrip.style.display = 'grid';
+      kpiStrip.style.gridTemplateColumns = 'repeat(4, minmax(0, 1fr))';
+      kpiStrip.style.gap = '8px';
+      kpiStrip.style.margin = '8px 0';
+    } catch (_) { /* ignore */ }
+    var kpiDefs = [
+      { label: 'Focus', tone: 'blue', kind: 'kpi' },
+      { label: 'Sessions', tone: 'gold', kind: 'kpi-gold' },
+      { label: 'Streak', tone: 'blue', kind: 'kpi' },
+      { label: 'Attention', tone: 'alert', kind: 'kpi-alert' },
+    ];
+    var kpiValues = [];
+    kpiDefs.forEach(function (def, i) {
+      var card = polish(el(doc, 'div', 'chronos-kpi card'), def.kind);
+      card.setAttribute('data-part', 'kpi-' + i);
+      var lab = styleKpiLabel(el(doc, 'div', 'chronos-kpi-label', def.label));
+      var val = styleKpiValue(el(doc, 'div', 'chronos-kpi-value', '—'), def.tone);
+      val.setAttribute('data-part', 'kpi-value-' + i);
+      card.appendChild(lab);
+      card.appendChild(val);
+      kpiStrip.appendChild(card);
+      kpiValues.push(val);
+    });
+    screen.appendChild(kpiStrip);
+
     var summary = el(doc, 'div', 'chronos-stats-summary status');
     summary.setAttribute('data-part', 'stats-summary');
     summary.textContent = 'Press “Load stats”. (No server calls until you do.)';
+    try {
+      summary.style.fontFamily = 'var(--mono, monospace)';
+      summary.style.fontSize = '12px';
+    } catch (_) { /* ignore */ }
     screen.appendChild(summary);
 
-    var chartCard = el(doc, 'div', 'card');
-    chartCard.appendChild(el(doc, 'h3', null, 'Chart'));
+    var chartCard = polish(el(doc, 'div', 'card chronos-deck chronos-chart-deck'), 'deck');
+    chartCard.setAttribute('data-deck', 'chart');
+    chartCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Chart — line / donut / heatmap'));
+    // Presentational legend chips for the hand-rolled canvas views
+    // (no SVG port; canvas stays the renderer).
+    var legend = el(doc, 'div', 'chronos-chart-legend');
+    legend.setAttribute('data-part', 'chart-legend');
+    try {
+      legend.style.display = 'flex';
+      legend.style.gap = '6px';
+      legend.style.flexWrap = 'wrap';
+      legend.style.margin = '0 0 8px';
+    } catch (_) { /* ignore */ }
+    [['line', 'kpi'], ['donut', 'kpi-gold'], ['heatmap', 'kpi-alert']].forEach(function (pair) {
+      var chip = polish(el(doc, 'span', 'tag-chip chronos-legend-chip', pair[0]), 'chip');
+      try {
+        if (pair[1] === 'kpi-gold') {
+          chip.style.borderColor = 'var(--warn, #f5c042)';
+          chip.style.color = 'var(--warn, #f5c042)';
+        } else if (pair[1] === 'kpi-alert') {
+          chip.style.borderColor = 'var(--danger, #e5534b)';
+          chip.style.color = 'var(--danger, #e5534b)';
+        }
+      } catch (_) { /* ignore */ }
+      legend.appendChild(chip);
+    });
+    chartCard.appendChild(legend);
     var canvas = null;
     try {
       canvas = doc.createElement('canvas');
@@ -228,9 +365,42 @@
     }
     screen.appendChild(chartCard);
 
-    var tableWrap = el(doc, 'div', 'chronos-stats-table-wrap card');
+    var tableWrap = polish(el(doc, 'div', 'chronos-stats-table-wrap card chronos-deck'), 'deck');
     tableWrap.setAttribute('data-part', 'stats-table');
+    tableWrap.setAttribute('data-deck', 'breakdown');
     screen.appendChild(tableWrap);
+
+    // --- Insight panels (styling/DOM only; mirror of the same payloads). ---
+    var insights = el(doc, 'div', 'chronos-insights');
+    insights.setAttribute('data-part', 'insights');
+    try {
+      insights.style.display = 'grid';
+      insights.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+      insights.style.gap = '8px';
+      insights.style.margin = '8px 0';
+    } catch (_) { /* ignore */ }
+    var insightTop = polish(el(doc, 'div', 'chronos-insight card'), 'insight');
+    insightTop.setAttribute('data-part', 'insight-top');
+    insightTop.appendChild(el(doc, 'h4', 'chronos-insight-title', 'Top focus'));
+    var insightTopBody = el(doc, 'p', 'chronos-insight-body', 'Load stats to see your top focus area.');
+    try { insightTopBody.style.color = 'var(--text, #e8eaed)'; } catch (_) { /* ignore */ }
+    insightTop.appendChild(insightTopBody);
+    var insightCov = polish(el(doc, 'div', 'chronos-insight card'), 'insight');
+    insightCov.setAttribute('data-part', 'insight-coverage');
+    try { insightCov.style.borderLeft = '3px solid var(--warn, #f5c042)'; } catch (_) { /* ignore */ }
+    insightCov.appendChild(el(doc, 'h4', 'chronos-insight-title', 'Coverage'));
+    var insightCovBody = el(doc, 'p', 'chronos-insight-body', 'Coverage appears after loading.');
+    try { insightCovBody.style.color = 'var(--muted, #7fa3b8)'; } catch (_) { /* ignore */ }
+    insightCov.appendChild(insightCovBody);
+    insights.appendChild(insightTop);
+    insights.appendChild(insightCov);
+    screen.appendChild(insights);
+
+    function setKpi(i, text) {
+      try {
+        if (kpiValues[i]) kpiValues[i].textContent = String(text);
+      } catch (_) { /* styling-only mirror */ }
+    }
 
     function renderSummary(stats) {
       while (summary.firstChild) summary.removeChild(summary.firstChild);
@@ -248,6 +418,16 @@
       Object.keys(streaks).forEach(function (k) { add('streak.' + k, streaks[k]); });
       if (!dl.firstChild) summary.textContent = JSON.stringify(stats || {});
       else summary.appendChild(dl);
+      // KPI mirror (same data, no new fetch): first count, count of keys,
+      // first streak, streak-key count. Keeps textContent-based tests green.
+      try {
+        var ck = Object.keys(counts);
+        var sk = Object.keys(streaks);
+        setKpi(0, ck.length ? counts[ck[0]] : '—');
+        setKpi(1, ck.length ? String(ck.length) : '—');
+        setKpi(2, sk.length ? streaks[sk[0]] : '—');
+        setKpi(3, sk.length ? String(sk.length) : '0');
+      } catch (_) { /* ignore */ }
     }
 
     function renderBreakdown(items) {
@@ -269,18 +449,59 @@
         }
       }
       // Always render the accessible table too (and as the fallback).
+      // Themed via consumed shell variables (accent headers, mono cells).
       var table = el(doc, 'table', 'chronos-stats-table data');
+      try {
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.fontFamily = 'var(--mono, monospace)';
+        table.style.fontSize = '13px';
+        table.style.color = 'var(--text, #e8eaed)';
+      } catch (_) { /* ignore */ }
       var head = el(doc, 'tr');
-      head.appendChild(el(doc, 'th', null, 'Item'));
-      head.appendChild(el(doc, 'th', null, 'Time'));
+      ['Item', 'Time'].forEach(function (t) {
+        var th = el(doc, 'th', null, t);
+        try {
+          th.style.color = 'var(--accent, #4f9cf9)';
+          th.style.textAlign = 'left';
+          th.style.padding = '5px 6px';
+          th.style.borderBottom = '1px solid var(--border, #333945)';
+          th.style.letterSpacing = '0.06em';
+          th.style.textTransform = 'uppercase';
+          th.style.fontSize = '11px';
+        } catch (_) { /* ignore */ }
+        head.appendChild(th);
+      });
       table.appendChild(head);
-      rows.forEach(function (r) {
+      rows.forEach(function (r, idx) {
         var tr = el(doc, 'tr');
-        tr.appendChild(el(doc, 'td', null, r.label));
-        tr.appendChild(el(doc, 'td', null, fmtMs(r.value)));
+        try {
+          if (idx === 0) tr.style.background = 'var(--accent-dim, rgba(79,156,249,.08))';
+          tr.style.borderBottom = '1px solid var(--border, #333945)';
+        } catch (_) { /* ignore */ }
+        var td0 = el(doc, 'td', null, r.label);
+        var td1 = el(doc, 'td', null, fmtMs(r.value));
+        try {
+          td0.style.padding = '5px 6px';
+          td1.style.padding = '5px 6px';
+          td1.style.color = idx === 0 ? 'var(--warn, #f5c042)' : 'var(--text, #e8eaed)';
+        } catch (_) { /* ignore */ }
+        tr.appendChild(td0);
+        tr.appendChild(td1);
         table.appendChild(tr);
       });
       tableWrap.appendChild(table);
+      // Insight mirror (same rows, no new fetch).
+      try {
+        if (rows.length) {
+          var total = rows.reduce(function (a, r) { return a + (Number(r.value) || 0); }, 0);
+          insightTopBody.textContent = rows[0].label + ' leads at ' + fmtMs(rows[0].value) + '.';
+          insightCovBody.textContent = rows.length + ' areas · ' + fmtMs(total) + ' total tracked.';
+        } else {
+          insightTopBody.textContent = 'No breakdown rows returned.';
+          insightCovBody.textContent = 'Nothing tracked in this range yet.';
+        }
+      } catch (_) { /* ignore */ }
       return mode;
     }
 
@@ -336,8 +557,9 @@
       );
     });
 
-    var aiCard = el(doc, 'div', 'card');
-    aiCard.appendChild(el(doc, 'h3', null, 'Ask Chronos'));
+    var aiCard = polish(el(doc, 'div', 'card chronos-deck'), 'deck');
+    aiCard.setAttribute('data-deck', 'ask');
+    aiCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Ask Chronos'));
     screen.appendChild(aiCard);
 
     container.appendChild(screen);

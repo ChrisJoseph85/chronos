@@ -77,28 +77,99 @@
 
   // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
   // :root theme variables with local fallbacks, so controls never render
-  // as raw white when the theme palette has not landed.
+  // as raw white when the theme palette has not landed. Palette owned by
+  // shell.css — never redefine --accent/--warn/--danger here (blue default
+  // via --accent, gold complementary via --warn/#f5c042, red alerts via
+  // --danger). Kinds: 'primary' | 'banner' | 'field' | 'deck' | 'metric' |
+  // 'metric-gold' | 'metric-alert' | 'answer' | 'queue'.
   function polish(node, kind) {
     if (!node || !node.style) return node;
     try {
       if (kind === 'primary') {
-        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+        node.style.boxShadow = 'var(--glow-md, var(--btn-glow, 0 0 10px rgba(79,156,249,.35)))';
       } else if (kind === 'banner') {
-        node.style.background = 'var(--danger-tint, #3d1f1d)';
+        node.style.background = 'var(--danger-tint, rgba(255,82,82,.10))';
         node.style.border = '1px solid var(--danger, #e5534b)';
         node.style.color = 'var(--banner-text, #ffd7d5)';
         node.style.borderRadius = 'var(--radius, 8px)';
         node.style.padding = '8px 12px';
         node.style.margin = '8px 0';
       } else if (kind === 'field') {
-        node.style.background = 'var(--bg, #14161a)';
+        node.style.background = 'var(--bg-2, var(--bg, #14161a))';
         node.style.border = '1px solid var(--border, #333945)';
         node.style.borderRadius = 'var(--radius, 8px)';
         node.style.color = 'var(--text, #e8eaed)';
         node.style.padding = '7px 9px';
         node.style.fontSize = '13px';
+      } else if (kind === 'deck') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, rgba(14,30,51,.95)), var(--panel, rgba(8,18,33,.95)))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '12px';
+        node.style.marginBottom = '12px';
+        node.style.boxShadow = 'inset 0 0 24px var(--accent-dim, rgba(0,212,255,.05))';
+      } else if (kind === 'metric') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, #23272f), var(--panel, #1a1e26))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderTop = '3px solid var(--accent, #4f9cf9)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.minWidth = '0';
+      } else if (kind === 'metric-gold') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, #23272f), var(--panel, #1a1e26))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderTop = '3px solid var(--warn, #f5c042)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.minWidth = '0';
+        node.style.boxShadow = '0 0 6px var(--warn-glow, rgba(245,192,66,.25))';
+      } else if (kind === 'metric-alert') {
+        node.style.background = 'linear-gradient(180deg, var(--panel-2, #23272f), var(--panel, #1a1e26))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderTop = '3px solid var(--danger, #e5534b)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.minWidth = '0';
+      } else if (kind === 'answer') {
+        node.style.background = 'var(--bg-2, var(--bg, #14161a))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderLeft = '3px solid var(--warn, #f5c042)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '10px 12px';
+        node.style.margin = '8px 0 0';
+        node.style.fontSize = '13px';
+        node.style.color = 'var(--text, #e8eaed)';
+      } else if (kind === 'queue') {
+        node.style.background = 'var(--bg-2, var(--bg, #14161a))';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '8px 10px';
+        node.style.margin = '8px 0 0';
       }
     } catch (_) { /* styling only — never break clicks */ }
+    return node;
+  }
+
+  // Styling-only label/value helpers (consume shell vars, never redefine).
+  function styleMetricLabel(node) {
+    try {
+      node.style.color = 'var(--muted, #7fa3b8)';
+      node.style.fontSize = '11px';
+      node.style.letterSpacing = '0.08em';
+      node.style.textTransform = 'uppercase';
+    } catch (_) { /* ignore */ }
+    return node;
+  }
+
+  function styleMetricValue(node, tone) {
+    try {
+      node.style.fontFamily = 'var(--mono, monospace)';
+      node.style.fontSize = '20px';
+      node.style.fontWeight = '700';
+      node.style.color = tone === 'gold' ? 'var(--warn, #f5c042)'
+        : tone === 'alert' ? 'var(--danger, #e5534b)'
+        : 'var(--accent, #4f9cf9)';
+    } catch (_) { /* ignore */ }
     return node;
   }
 
@@ -277,8 +348,9 @@
     }
 
     // --- briefing loader ---
-    var loadCard = el(doc, 'div', 'card');
-    loadCard.appendChild(el(doc, 'h3', null, 'Briefing for date'));
+    var loadCard = polish(el(doc, 'div', 'card chronos-deck chronos-briefing-loader'), 'deck');
+    loadCard.setAttribute('data-deck', 'briefing-loader');
+    loadCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Briefing for date'));
     var controls = el(doc, 'div', 'chronos-row row');
     var dateInput = polish(el(doc, 'input', 'chronos-date'), 'field');
     dateInput.type = 'date';
@@ -295,27 +367,141 @@
     result.setAttribute('data-part', 'briefing-result');
     result.textContent = 'Pick a date and press “Load briefing”. (No server calls until you do.)';
     loadCard.appendChild(result);
+
+    // --- Cyber-HUD metric trio: Focus / Friction / Recommendation
+    // (styling/DOM only; values mirror the same /api/briefing payload). ---
+    var metricTrio = el(doc, 'div', 'chronos-metric-trio');
+    metricTrio.setAttribute('data-part', 'metric-trio');
+    try {
+      metricTrio.style.display = 'grid';
+      metricTrio.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+      metricTrio.style.gap = '8px';
+      metricTrio.style.margin = '8px 0 0';
+    } catch (_) { /* ignore */ }
+    var metricDefs = [
+      { label: 'Focus', tone: 'blue', kind: 'metric', part: 'metric-focus' },
+      { label: 'Friction', tone: 'alert', kind: 'metric-alert', part: 'metric-friction' },
+      { label: 'Recommendation', tone: 'gold', kind: 'metric-gold', part: 'metric-recommendation' },
+    ];
+    var metricValues = [];
+    metricDefs.forEach(function (def) {
+      var card = polish(el(doc, 'div', 'chronos-metric card'), def.kind);
+      card.setAttribute('data-part', def.part);
+      card.appendChild(styleMetricLabel(el(doc, 'div', 'chronos-metric-label', def.label)));
+      var mv = styleMetricValue(el(doc, 'div', 'chronos-metric-value', '—'), def.tone);
+      mv.setAttribute('data-part', def.part + '-value');
+      card.appendChild(mv);
+      metricTrio.appendChild(card);
+      metricValues.push(mv);
+    });
+    loadCard.appendChild(metricTrio);
+
+    // --- Directives queue (styling/DOM only; mirrors briefing counts). ---
+    var directives = polish(el(doc, 'div', 'chronos-directives'), 'queue');
+    directives.setAttribute('data-part', 'directives-queue');
+    directives.appendChild(el(doc, 'h4', 'chronos-sub-title', 'Directives queue'));
+    var directivesList = el(doc, 'ol', 'chronos-directives-list');
+    directivesList.setAttribute('data-part', 'directives-list');
+    try {
+      directivesList.style.margin = '4px 0 0';
+      directivesList.style.paddingLeft = '20px';
+      directivesList.style.color = 'var(--text, #e8eaed)';
+      directivesList.style.fontSize = '13px';
+    } catch (_) { /* ignore */ }
+    var directivesEmpty = el(doc, 'li', 'chronos-directive-empty', 'Load a briefing to queue directives.');
+    directivesList.appendChild(directivesEmpty);
+    directives.appendChild(directivesList);
+    loadCard.appendChild(directives);
+
+    // --- Energy-curve container (static-styled, no new libs; decorative). ---
+    var energy = el(doc, 'div', 'chronos-energy-curve jarvis-hud');
+    energy.setAttribute('data-part', 'energy-curve');
+    energy.setAttribute('aria-hidden', 'true');
+    try {
+      energy.style.display = 'flex';
+      energy.style.alignItems = 'flex-end';
+      energy.style.gap = '3px';
+      energy.style.height = '40px';
+      energy.style.margin = '8px 0 0';
+      energy.style.padding = '6px 8px';
+    } catch (_) { /* ignore */ }
+    [8, 14, 22, 18, 28, 34, 26, 20, 30, 24, 16, 10].forEach(function (hh, i) {
+      var bar = el(doc, 'span', 'chronos-energy-bar');
+      try {
+        bar.style.display = 'inline-block';
+        bar.style.width = '8px';
+        bar.style.height = String(hh) + 'px';
+        bar.style.borderRadius = '2px';
+        bar.style.background = i % 4 === 1
+          ? 'var(--warn, #f5c042)'
+          : 'linear-gradient(180deg, var(--accent, #4f9cf9), var(--accent-2, #1899d6))';
+        bar.style.opacity = String(0.55 + (hh / 80));
+      } catch (_) { /* ignore */ }
+      energy.appendChild(bar);
+    });
+    loadCard.appendChild(energy);
     screen.appendChild(loadCard);
 
     // --- proactive urgent-briefing card (hidden until an urgent briefing
     // lands via the after-first-paint check below; never banner spam) ---
-    var urgentCard = el(doc, 'div', 'chronos-briefing-urgent');
+    // Red-alert deck styling via consumed --danger (never redefined).
+    var urgentCard = polish(el(doc, 'div', 'chronos-briefing-urgent card'), 'deck');
     urgentCard.setAttribute('data-part', 'urgent-briefing');
     urgentCard.setAttribute('role', 'status');
+    try {
+      urgentCard.style.borderLeft = '3px solid var(--danger, #e5534b)';
+      urgentCard.style.display = 'none';
+    } catch (_) { /* ignore */ }
     urgentCard.hidden = true;
     screen.appendChild(urgentCard);
 
     function renderUrgentBriefing(data, date) {
       try {
         while (urgentCard.firstChild) urgentCard.removeChild(urgentCard.firstChild);
+        try { urgentCard.style.display = ''; } catch (_) { /* ignore */ }
         urgentCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Urgent Briefing'));
         var summary = briefingSummary(data);
         var text = 'Sir, ' + date + ' needs your attention';
         if (summary) text += ': ' + summary;
         text += ' — I have flagged it here for you.';
-        urgentCard.appendChild(el(doc, 'p', null, text));
+        var up = el(doc, 'p', null, text);
+        try { up.style.color = 'var(--danger, #e5534b)'; } catch (_) { /* ignore */ }
+        urgentCard.appendChild(up);
         urgentCard.hidden = false;
       } catch (_) { /* never break boot */ }
+    }
+
+    // Mirror the same briefing payload into the metric trio + directives
+    // queue (presentation only; fetch/handler logic untouched).
+    function renderHudMirrors(data) {
+      try {
+        var un = data && data.unallocated_tasks;
+        var ro = data && data.rollover;
+        var du = data && data.due_reviews;
+        var q = data && (data.question || data.recommendation);
+        if (metricValues[0]) metricValues[0].textContent = String(du == null ? '—' : (typeof du === 'object' ? briefCount(du) || '—' : du));
+        if (metricValues[1]) metricValues[1].textContent = String(un == null ? '—' : (typeof un === 'object' ? briefCount(un) || '—' : un));
+        if (metricValues[2]) metricValues[2].textContent = String(q == null ? (ro == null ? '—' : (typeof ro === 'object' ? briefCount(ro) || '—' : ro)) : (typeof q === 'object' ? JSON.stringify(q) : q)).slice(0, 48);
+        while (directivesList.firstChild) directivesList.removeChild(directivesList.firstChild);
+        var items = [];
+        if (un != null && Number(un) > 0) items.push('Triage ' + un + ' unallocated task(s)');
+        else if (un != null) items.push('Unallocated: ' + String(typeof un === 'object' ? JSON.stringify(un) : un));
+        if (ro != null && Number(ro) > 0) items.push('Carry over ' + ro + ' rollover item(s)');
+        else if (ro != null) items.push('Rollover: ' + String(typeof ro === 'object' ? JSON.stringify(ro) : ro));
+        if (du != null && Number(du) > 0) items.push('Complete ' + du + ' due review(s)');
+        else if (du != null) items.push('Due reviews: ' + String(typeof du === 'object' ? JSON.stringify(du) : du));
+        if (!items.length) items.push(q != null ? String(typeof q === 'object' ? JSON.stringify(q) : q) : 'Nothing urgent — hold the line.');
+        items.slice(0, 5).forEach(function (t, i) {
+          var li = el(doc, 'li', 'chronos-directive', (i + 1) + '. ' + t);
+          try {
+            if (i === 0) {
+              li.style.color = 'var(--warn, #f5c042)';
+              li.style.fontWeight = '600';
+            }
+          } catch (_) { /* ignore */ }
+          directivesList.appendChild(li);
+        });
+      } catch (_) { /* mirrors never break clicks */ }
     }
 
     function renderBriefing(data) {
@@ -342,6 +528,7 @@
       } else {
         result.appendChild(dl);
       }
+      renderHudMirrors(data);
     }
 
     loadBtn.addEventListener('click', function () {
@@ -375,6 +562,7 @@
       ).then(
         function (data) {
           renderBriefing(data);
+          setConfidence('high', 88);
           var summary = briefingSummary(data);
           var body = 'Your briefing for ' + date + ' is ready, sir';
           if (summary) body += ' — ' + summary + ' on the list';
@@ -388,7 +576,8 @@
     });
 
     // --- question box ---
-    var qCard = el(doc, 'div', 'card');
+    var qCard = polish(el(doc, 'div', 'card chronos-deck chronos-answer-deck'), 'deck');
+    qCard.setAttribute('data-deck', 'answer');
     var qTitle = el(doc, 'h3', 'chronos-sub-title', 'Ask a question');
     qCard.appendChild(qTitle);
     var qForm = el(doc, 'form', 'chronos-row row');
@@ -404,12 +593,55 @@
     qForm.appendChild(qInput);
     qForm.appendChild(qBtn);
     qCard.appendChild(qForm);
-    var qAnswer = el(doc, 'div', 'chronos-question-answer status');
+    var qAnswer = polish(el(doc, 'div', 'chronos-question-answer status'), 'answer');
     qAnswer.setAttribute('data-part', 'question-answer');
     qAnswer.setAttribute('role', 'status');
     qAnswer.textContent = 'Answers appear here.';
     qCard.appendChild(qAnswer);
+    // Confidence line (styling/DOM only): static-styled meter + label that
+    // mirrors answer state; gold complementary accent, no new libs.
+    var qConf = el(doc, 'div', 'chronos-answer-confidence');
+    qConf.setAttribute('data-part', 'answer-confidence');
+    try {
+      qConf.style.display = 'flex';
+      qConf.style.alignItems = 'center';
+      qConf.style.gap = '8px';
+      qConf.style.marginTop = '6px';
+      qConf.style.fontSize = '12px';
+      qConf.style.color = 'var(--muted, #7fa3b8)';
+    } catch (_) { /* ignore */ }
+    var qConfLabel = el(doc, 'span', 'chronos-confidence-label', 'Confidence: —');
+    var qConfBar = el(doc, 'span', 'chronos-confidence-bar');
+    qConfBar.setAttribute('aria-hidden', 'true');
+    try {
+      qConfBar.style.display = 'inline-block';
+      qConfBar.style.width = '96px';
+      qConfBar.style.height = '6px';
+      qConfBar.style.borderRadius = '3px';
+      qConfBar.style.background = 'var(--bg-2, #14161a)';
+      qConfBar.style.border = '1px solid var(--border, #333945)';
+      qConfBar.style.overflow = 'hidden';
+    } catch (_) { /* ignore */ }
+    var qConfFill = el(doc, 'span', 'chronos-confidence-fill');
+    try {
+      qConfFill.style.display = 'block';
+      qConfFill.style.width = '0%';
+      qConfFill.style.height = '100%';
+      qConfFill.style.background = 'linear-gradient(90deg, var(--accent, #4f9cf9), var(--warn, #f5c042))';
+    } catch (_) { /* ignore */ }
+    qConfBar.appendChild(qConfFill);
+    qConf.appendChild(qConfLabel);
+    qConf.appendChild(qConfBar);
+    qCard.appendChild(qConf);
     screen.appendChild(qCard);
+
+    // Presentation-only confidence mirror (no fetch/handler changes).
+    function setConfidence(label, pct) {
+      try {
+        qConfLabel.textContent = 'Confidence: ' + label;
+        qConfFill.style.width = String(pct) + '%';
+      } catch (_) { /* ignore */ }
+    }
 
     qForm.addEventListener('submit', function (ev) {
       try { ev.preventDefault(); } catch (_) { /* ignore */ }
@@ -418,9 +650,11 @@
       try { text = (qInput.value || '').trim(); } catch (_) { text = ''; }
       if (!text) {
         qAnswer.textContent = 'Type a question first.';
+        setConfidence('—', 0);
         return;
       }
       qAnswer.textContent = 'Asking…';
+      setConfidence('checking…', 35);
       var askFn;
       if (typeof ctx.onAsk === 'function') {
         askFn = function () { return ctx.onAsk(text); };
@@ -457,10 +691,12 @@
       Promise.resolve(r).then(
         function (msg) {
           qAnswer.textContent = String(msg == null ? 'OK' : msg);
+          setConfidence(String(msg == null || msg === 'OK' ? 'medium' : 'high'), msg === 'OK' || msg == null ? 60 : 88);
           polishedNotify('Briefing Answer', 'At your service, sir — ' + String(msg == null ? 'OK' : msg));
         },
         function (err) {
           qAnswer.textContent = 'Ask failed.';
+          setConfidence('low — server unreachable', 12);
           showBanner('Ask failed: ' + (err && err.message ? err.message : err));
         }
       );
@@ -469,8 +705,9 @@
     // Shared AI row in its own themed card at the bottom of the screen
     // (mic/send buttons are styled by the shell theme; the card keeps the
     // row from rendering raw when the palette has not landed).
-    var aiCard = el(doc, 'div', 'card');
-    aiCard.appendChild(el(doc, 'h3', null, 'Ask Chronos'));
+    var aiCard = polish(el(doc, 'div', 'card chronos-deck'), 'deck');
+    aiCard.setAttribute('data-deck', 'ask-chronos');
+    aiCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Ask Chronos'));
     screen.appendChild(aiCard);
 
     container.appendChild(screen);

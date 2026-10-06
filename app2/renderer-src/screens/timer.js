@@ -43,12 +43,18 @@
 
   // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
   // :root theme variables with local fallbacks, so controls never render
-  // as raw white when the theme palette has not landed.
+  // as raw white when the theme palette has not landed. Blue default
+  // (--accent), gold complementary (--warn, #f5c042), red alerts
+  // (--danger). Palette is never redefined; text is always var(--text).
   function polish(node, kind) {
     if (!node || !node.style) return node;
     try {
       if (kind === 'primary') {
         node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+      } else if (kind === 'gold') {
+        node.style.borderColor = 'var(--warn, #f5c042)';
+        node.style.color = 'var(--warn, #f5c042)';
+        node.style.boxShadow = 'var(--glow-md, 0 0 14px rgba(245,192,66,.55))';
       } else if (kind === 'field') {
         node.style.background = 'var(--bg, #14161a)';
         node.style.border = '1px solid var(--border, #333945)';
@@ -175,9 +181,43 @@
     screen.appendChild(modeCard);
 
     // --- session controls ---
-    var sessCard = el(doc, 'div', 'card');
+    // CYBER-HUD: giant gold mono readout in a glowing ring, Start/Pause/
+    // Commit trio (gold primary), static hotkey hints. Ids, fetch routes
+    // and handlers below are unchanged.
+    var sessCard = el(doc, 'div', 'card timer-session');
     sessCard.appendChild(el(doc, 'h3', null, 'Session'));
-    var sessRow = el(doc, 'div', 'row');
+    var ring = el(doc, 'div', 'timer-ring', null);
+    try {
+      ring.style.display = 'flex';
+      ring.style.alignItems = 'center';
+      ring.style.justifyContent = 'center';
+      ring.style.padding = '14px';
+      ring.style.margin = '8px 0';
+      ring.style.borderRadius = '50%';
+      ring.style.width = '220px';
+      ring.style.height = '220px';
+      ring.style.marginLeft = 'auto';
+      ring.style.marginRight = 'auto';
+      ring.style.border = '2px solid var(--warn, #f5c042)';
+      ring.style.background = 'radial-gradient(circle at 50% 50%, var(--panel-2, #23272f) 55%, transparent 72%)';
+      ring.style.boxShadow = 'var(--glow-md, 0 0 14px rgba(245,192,66,.55)), inset 0 0 24px rgba(245,192,66,.18)';
+    } catch (_) { /* styling only */ }
+    var readout = el(doc, 'div', 'timer-readout', '0:00:00');
+    readout.id = 'timer-readout';
+    readout.setAttribute('role', 'timer');
+    readout.setAttribute('aria-label', 'Elapsed time');
+    try {
+      readout.style.fontFamily = 'var(--mono, monospace)';
+      readout.style.fontSize = '44px';
+      readout.style.fontWeight = '700';
+      readout.style.letterSpacing = '0.04em';
+      readout.style.color = 'var(--warn, #f5c042)';
+      readout.style.textShadow = '0 0 12px rgba(245,192,66,.65), 0 0 34px rgba(245,192,66,.30)';
+      readout.style.textAlign = 'center';
+    } catch (_) { /* styling only */ }
+    ring.appendChild(readout);
+    sessCard.appendChild(ring);
+    var sessRow = el(doc, 'div', 'row timer-trio');
     var labelInput = polish(doc.createElement('input'), 'field');
     labelInput.type = 'text';
     labelInput.id = 'timer-label';
@@ -188,12 +228,26 @@
     targetInput.min = '1';
     targetInput.placeholder = 'Target min (countdown)';
     targetInput.style.width = '12em';
-    var startBtn = polish(el(doc, 'button', 'btn primary', 'Start'), 'primary');
+    var startBtn = polish(el(doc, 'button', 'btn primary timer-start', 'Start'), 'primary');
     startBtn.type = 'button';
     startBtn.id = 'timer-start';
-    var stopBtn = el(doc, 'button', 'btn', 'Stop');
+    try {
+      startBtn.style.borderColor = 'var(--warn, #f5c042)';
+      startBtn.style.color = 'var(--warn, #f5c042)';
+    } catch (_) { /* styling only */ }
+    // Trio visual: Pause is a static disabled affordance (no fetch, no
+    // handler) so the Start/Pause/Commit row renders without new logic.
+    var pauseBtn = el(doc, 'button', 'btn timer-pause', 'Pause');
+    pauseBtn.type = 'button';
+    pauseBtn.disabled = true;
+    pauseBtn.title = 'Pause (Space) — resumes on Start';
+    var stopBtn = el(doc, 'button', 'btn timer-commit', 'Stop');
     stopBtn.type = 'button';
     stopBtn.id = 'timer-stop';
+    try {
+      stopBtn.style.borderColor = 'var(--danger, #ff5252)';
+      stopBtn.style.color = 'var(--danger, #ff5252)';
+    } catch (_) { /* styling only */ }
     var voidLabel = polish(el(doc, 'label', 'check', null), 'pill');
     var voidBox = polish(doc.createElement('input'), 'check');
     voidBox.type = 'checkbox';
@@ -203,6 +257,7 @@
     sessRow.appendChild(labelInput);
     sessRow.appendChild(targetInput);
     sessRow.appendChild(startBtn);
+    sessRow.appendChild(pauseBtn);
     sessRow.appendChild(stopBtn);
     sessRow.appendChild(voidLabel);
     sessCard.appendChild(sessRow);
@@ -210,6 +265,16 @@
     status.id = 'timer-status';
     status.setAttribute('role', 'status');
     sessCard.appendChild(status);
+    // Static hotkey hints (no handler — display only).
+    var hotkeys = el(doc, 'div', 'hotkey-hints',
+      'Hotkeys: Space Start/Pause · S Stop/Commit · L Load summary');
+    try {
+      hotkeys.style.fontFamily = 'var(--mono, monospace)';
+      hotkeys.style.fontSize = '12px';
+      hotkeys.style.color = 'var(--muted, #7fa3b8)';
+      hotkeys.style.padding = '4px 2px';
+    } catch (_) { /* styling only */ }
+    sessCard.appendChild(hotkeys);
     screen.appendChild(sessCard);
 
     startBtn.addEventListener('click', function () {
@@ -234,6 +299,7 @@
         function (data) {
           startBtn.disabled = false;
           status.textContent = 'Running: ' + ((data && (data.label || data.mode)) || mode) + '.';
+          try { readout.textContent = '0:00:00'; } catch (_) { /* display only */ }
           if (sh) sh.notify('Chronos timer', 'Timer started (' + mode + ').');
         },
         function (err) {
@@ -250,6 +316,13 @@
           stopBtn.disabled = false;
           var extra = data && data.voided ? ' (voided — time discarded).' : '.';
           status.textContent = 'Stopped' + extra;
+          // Commit the final time to the gold readout when reported
+          // (display only — status text and notify paths unchanged).
+          try {
+            var finalMs = data && (data.elapsed_ms != null ? data.elapsed_ms :
+              (data.total_ms != null ? data.total_ms : data.duration_ms));
+            if (finalMs != null) readout.textContent = fmtMs(finalMs);
+          } catch (_) { /* display only */ }
           if (sh) sh.notify('Chronos timer', 'Timer stopped' + extra);
         },
         function (err) {
@@ -277,7 +350,12 @@
     function kvRow(name, value) {
       var d = el(doc, 'div', 'kv', null);
       d.appendChild(el(doc, 'span', null, name));
-      d.appendChild(el(doc, 'span', null, value));
+      var v = el(doc, 'span', null, value);
+      try {
+        v.style.color = 'var(--warn, #f5c042)';
+        v.style.fontFamily = 'var(--mono, monospace)';
+      } catch (_) { /* styling only */ }
+      d.appendChild(v);
       return d;
     }
 
@@ -357,7 +435,11 @@
             return;
           }
           var table = doc.createElement('table');
-          table.className = 'data';
+          table.className = 'data log-table';
+          try {
+            table.style.border = '1px solid var(--border, #13415e)';
+            table.style.borderRadius = 'var(--radius, 8px)';
+          } catch (_) { /* styling only */ }
           var thead = doc.createElement('thead');
           var hr = doc.createElement('tr');
           ['Child', 'Kind', 'Total'].forEach(function (h) {
@@ -368,14 +450,24 @@
           thead.appendChild(hr);
           table.appendChild(thead);
           var tbody = doc.createElement('tbody');
-          rows.forEach(function (r) {
+          rows.forEach(function (r, rIdx) {
             var tr = doc.createElement('tr');
+            tr.className = 'log-row';
+            try {
+              tr.style.background = (rIdx % 2)
+                ? 'var(--panel-2, #23272f)'
+                : 'transparent';
+            } catch (_) { /* styling only */ }
             var tdT = doc.createElement('td');
             tdT.textContent = r.title || r.node_id || '';
             var tdK = doc.createElement('td');
             tdK.textContent = r.kind || '';
             var tdM = doc.createElement('td');
             tdM.textContent = fmtMs(r.total_ms);
+            try {
+              tdM.style.color = 'var(--warn, #f5c042)';
+              tdM.style.fontFamily = 'var(--mono, monospace)';
+            } catch (_) { /* styling only */ }
             tr.appendChild(tdT);
             tr.appendChild(tdK);
             tr.appendChild(tdM);
@@ -440,9 +532,24 @@
         preList.appendChild(el(doc, 'li', 'empty', 'No presets loaded yet.'));
         return;
       }
-      list.forEach(function (p) {
-        preList.appendChild(el(doc, 'li', null,
-          (p.name || 'preset') + ' — ' + p.focus_minutes + '/' + p.break_minutes + ' x' + (p.cycles == null ? '?' : p.cycles)));
+      // CYBER-HUD themed preset rows (styling only — labels unchanged).
+      list.forEach(function (p, idx) {
+        var li = el(doc, 'li', 'preset-card',
+          (p.name || 'preset') + ' — ' + p.focus_minutes + '/' + p.break_minutes + ' x' + (p.cycles == null ? '?' : p.cycles));
+        try {
+          li.style.background = (idx % 2)
+            ? 'var(--panel-2, #23272f)'
+            : 'var(--panel, #0a1626)';
+          li.style.border = '1px solid var(--border, #13415e)';
+          li.style.borderLeft = '3px solid var(--warn, #f5c042)';
+          li.style.borderRadius = 'var(--radius, 8px)';
+          li.style.padding = '6px 10px';
+          li.style.margin = '4px 0';
+          li.style.color = 'var(--text, #e8eaed)';
+          li.style.fontFamily = 'var(--mono, monospace)';
+          li.style.listStyle = 'none';
+        } catch (_) { /* styling only */ }
+        preList.appendChild(li);
       });
     }
     renderPresets([]);

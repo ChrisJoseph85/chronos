@@ -160,7 +160,8 @@
     var doc = (container && container.ownerDocument) || (typeof document !== 'undefined' ? document : null);
     if (!doc || !container) return null;
 
-    var row = el(doc, 'div', 'chronos-ai-row jarvis-ai-row');
+    // SHELL-THEME omnibar skin (classes only — data-action/fetch identical).
+    var row = el(doc, 'div', 'chronos-ai-row jarvis-ai-row chronos-omnibar is-floating');
     row.setAttribute('data-screen-part', 'ai-row');
     row.setAttribute('data-theme', 'jarvis');
 
@@ -174,7 +175,7 @@
     var input = el(doc, 'input', 'chronos-ai-input jarvis-ai-input');
     input.type = 'text';
     input.name = 'ai-text';
-    input.placeholder = 'Ask Chronos…';
+    input.placeholder = 'Ask Chronos / Execute →';
     input.setAttribute('data-action', 'ai-text');
     input.setAttribute('aria-label', 'Ask Chronos');
     var sendBtn = el(doc, 'button', 'chronos-ai-send btn primary jarvis-send', 'Send');

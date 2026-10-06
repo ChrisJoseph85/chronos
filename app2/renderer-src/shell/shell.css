@@ -45,16 +45,34 @@
   --accent-2: #1899d6;
   --accent-glow: rgba(0, 212, 255, 0.55);
   --accent-dim: rgba(0, 212, 255, 0.14);
+  /* SHELL-THEME complementary accents (cyan stays DEFAULT theme).
+   * Gold = primary actions / timer readout / active states only.
+   * Crimson = alerts/danger only. Never repoint --accent off cyan. */
+  --gold: #f5c042;
+  --gold-2: #d9a52e;
+  --gold-glow: rgba(245, 192, 66, 0.55);
+  --gold-dim: rgba(245, 192, 66, 0.14);
+  --crimson: #ff3366;
+  --crimson-glow: rgba(255, 51, 102, 0.5);
+  --crimson-dim: rgba(255, 51, 102, 0.12);
   --warn: #ffb454;
   --danger: #ff5252;
   --ok: #3ddc84;
-  --sidebar-w: 220px;
+  --sidebar-w: 240px;
+  --rail-w: 240px;
+  --dock-w: 64px;
   --radius: 8px;
+  --radius-card: 8px;
+  --radius-ctl: 4px;
   --glow-sm: 0 0 6px var(--accent-glow);
   --glow-md: 0 0 14px var(--accent-glow), 0 0 34px rgba(0, 212, 255, 0.22);
   --glow-lg: 0 0 22px var(--accent-glow), 0 0 60px rgba(0, 212, 255, 0.28);
-  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  --gold-glow-sm: 0 0 6px var(--gold-glow);
+  --gold-glow-md: 0 0 14px var(--gold-glow), 0 0 34px rgba(245, 192, 66, 0.22);
+  /* Local-first stacks: named faces only when installed locally, system
+   * fallbacks otherwise. No @import / webfont downloads (zero-network). */
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -79,7 +97,7 @@ html[data-theme="jarvis"] body, body.jarvis-theme { background-color: var(--bg);
 /* --- sidebar --- */
 #sidebar {
   width: var(--sidebar-w);
-  min-width: 56px;
+  min-width: var(--dock-w);
   background: linear-gradient(180deg, #0b1a2e 0%, #070f1d 100%);
   border-right: 1px solid var(--border);
   box-shadow: inset -1px 0 0 rgba(0, 212, 255, 0.12);
@@ -160,12 +178,17 @@ html[data-theme="jarvis"] body, body.jarvis-theme { background-color: var(--bg);
 }
 #sidebar-collapse:hover { color: var(--accent); border-color: var(--accent); box-shadow: var(--glow-sm); }
 
-/* collapsed → icons only */
-#sidebar.collapsed { width: 56px; }
+/* collapsed → icons only (64px dock per Cyber-HUD rail spec) */
+#sidebar.collapsed { width: var(--dock-w); }
 #sidebar.collapsed .nav-label,
 #sidebar.collapsed .brand-name { display: none; }
 #sidebar.collapsed .nav-btn { justify-content: center; padding: 9px 0; }
 #sidebar.collapsed .brand { justify-content: center; padding: 4px 0 12px; }
+#sidebar.collapsed .rail-footer .rail-telemetry,
+#sidebar.collapsed .rail-footer .user-meta,
+#sidebar.collapsed .rail-footer .status-pill .pill-label { display: none; }
+#sidebar.collapsed .rail-footer .status-pill { justify-content: center; padding: 6px 4px; }
+#sidebar.collapsed .rail-footer .user-card { justify-content: center; }
 
 /* --- drag splitter --- */
 .splitter {
@@ -542,4 +565,180 @@ table.data th { color: var(--accent); font-weight: 600; letter-spacing: 0.06em; 
   .cal-day { font-size: 11px; }
   .chronos-ai-row { flex-direction: column; align-items: stretch; }
   .chronos-ai-mic, .chronos-ai-mic.jarvis-mic, .mic-ring { align-self: center; }
+}
+
+/* === SHELL-THEME adapter: Cyber-HUD complementary skin (cyan default kept) === */
+
+/* 4px controls / 8px cards per mockup rhythm. */
+.nav-btn,
+.btn, button.btn,
+.chronos-ai-send,
+button:not([class]),
+input[type="text"], input[type="date"], input[type="number"],
+input[type="password"], input[type="search"], input[type="time"],
+input:not([type]), select, textarea,
+.chronos-banner { border-radius: var(--radius-ctl); }
+.card, .jarvis-panel, .jarvis-hud { border-radius: var(--radius-card); }
+
+/* Gold complementary accents (opt-in only — never the default theme). */
+.gold-text, .accent-gold { color: var(--gold); }
+.btn.gold, button.btn.gold {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: transparent;
+}
+.btn.gold:hover, button.btn.gold:hover {
+  background: var(--gold-dim);
+  box-shadow: var(--gold-glow-sm);
+}
+.btn.primary-gold, button.btn.primary-gold {
+  background: linear-gradient(180deg, rgba(245, 192, 66, 0.28), rgba(245, 192, 66, 0.14));
+  border-color: var(--gold);
+  color: #fff6dd;
+  text-shadow: 0 0 8px var(--gold-glow);
+  box-shadow: var(--gold-glow-md), inset 0 0 12px rgba(245, 192, 66, 0.25);
+}
+/* Timer readout in gold mono; active-state gold underline helper. */
+.timer-readout, .chrono-gold {
+  font-family: var(--mono);
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(245, 192, 66, 0.45);
+  letter-spacing: 0.06em;
+}
+.is-gold-active, [aria-current="page"].is-gold-active {
+  border-color: var(--gold);
+  box-shadow: var(--gold-glow-sm), inset 0 0 14px rgba(245, 192, 66, 0.15);
+}
+
+/* Crimson: alerts / danger only. */
+.crimson-text, .accent-crimson { color: var(--crimson); }
+.btn.crimson, button.btn.crimson { border-color: var(--crimson); color: var(--crimson); }
+.btn.crimson:hover, button.btn.crimson:hover {
+  background: var(--crimson-dim);
+  box-shadow: 0 0 10px var(--crimson-glow);
+}
+.banner-crimson {
+  border: 1px solid var(--crimson);
+  background: var(--crimson-dim);
+  color: var(--crimson);
+  border-radius: var(--radius-ctl);
+  padding: 6px 10px;
+}
+
+/* Fluid deck + inspector spacing helpers. */
+.deck-fluid { max-width: 1200px; margin: 0 auto; width: 100%; }
+.inspector { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
+
+/* Rail footer widgets (DOM injected by shell.js — skin only). */
+.rail-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 6px 4px;
+  border-top: 1px solid var(--border);
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ok);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px;
+  background: rgba(61, 220, 132, 0.06);
+}
+.status-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px rgba(61, 220, 132, 0.8);
+  flex-shrink: 0;
+}
+.status-pill.is-alert { color: var(--crimson); background: var(--crimson-dim); border-color: var(--crimson); }
+.status-pill.is-alert .dot { background: var(--crimson); box-shadow: 0 0 8px var(--crimson-glow); }
+.rail-telemetry {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail-telemetry .tele-gold { color: var(--gold); }
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctl);
+  padding: 6px 8px;
+  background: rgba(0, 212, 255, 0.03);
+}
+.user-card .avatar {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: inset 0 0 8px rgba(245, 192, 66, 0.2);
+}
+.user-card .user-meta { display: flex; flex-direction: column; min-width: 0; }
+.user-card .user-name { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.user-card .user-sub { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* Floating omnibar skin: existing .chronos-ai-row structure, restyled as a
+ * sticky bottom command bar. Glow elevation only (no drop shadows). */
+.chronos-ai-row.chronos-omnibar,
+.chronos-ai-row.is-floating {
+  position: sticky;
+  bottom: 12px;
+  z-index: 30;
+  margin-top: 16px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(15, 19, 28, 0.96), rgba(10, 14, 23, 0.96));
+  border: 1px solid var(--border);
+  box-shadow: var(--glow-md), inset 0 0 24px rgba(0, 212, 255, 0.06);
+  backdrop-filter: blur(8px);
+  padding: 10px 12px;
+}
+.chronos-ai-row.chronos-omnibar .chronos-ai-input {
+  background: rgba(8, 18, 33, 0.9);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+/* Omnibar mic: gold ring (complementary accent). Send stays cyan primary. */
+.chronos-ai-row.chronos-omnibar .chronos-ai-mic,
+.chronos-ai-row.chronos-omnibar .chronos-ai-mic.jarvis-mic,
+.chronos-ai-row.is-floating .chronos-ai-mic,
+.chronos-ai-row.is-floating .chronos-ai-mic.jarvis-mic {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: radial-gradient(circle at 50% 50%, rgba(245, 192, 66, 0.32) 0%, rgba(245, 192, 66, 0.10) 45%, transparent 70%);
+  text-shadow: var(--gold-glow-sm);
+  box-shadow: var(--gold-glow-md), inset 0 0 12px rgba(245, 192, 66, 0.35);
+}
+.chronos-ai-row.chronos-omnibar .chronos-ai-mic::before,
+.chronos-ai-row.chronos-omnibar .chronos-ai-mic.jarvis-mic::before {
+  border-color: rgba(245, 192, 66, 0.6);
+  box-shadow: inset 0 0 8px rgba(245, 192, 66, 0.4);
+}
+.chronos-ai-row.chronos-omnibar .chronos-ai-status,
+.chronos-ai-row.is-floating .chronos-ai-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
