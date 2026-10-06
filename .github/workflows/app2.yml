@@ -1,0 +1,37 @@
+name: app2
+
+on: [push, pull_request]
+
+jobs:
+  shell:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            artifact: chronos-app2-linux
+          - os: windows-latest
+            target: win
+            artifact: chronos-app2-win-unverified
+          - os: macos-latest
+            target: mac
+            artifact: chronos-app2-mac-unverified
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm test
+      - run: npm run pack:${{ matrix.target }}
+      - run: echo "NOTE: win/mac artifacts are built, not verified here (mac dmg is unsigned, identity null)."
+        if: matrix.target != 'linux'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: app2/release/

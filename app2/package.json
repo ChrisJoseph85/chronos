@@ -1,0 +1,58 @@
+{
+  "name": "chronos-app2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chronos desktop shell (Electron, direct app)",
+  "main": "main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests-main/",
+    "pack": "electron-builder --linux AppImage deb",
+    "pack:linux": "electron-builder --linux AppImage deb",
+    "pack:win": "electron-builder --win NSIS",
+    "pack:mac": "electron-builder --mac dmg"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "app.chronos.app2",
+    "productName": "Chronos",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main/**/*",
+      "renderer-dist/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "maintainer": "Chronos"
+    },
+    "win": {
+      "target": [
+        "NSIS"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "identity": null
+    },
+    "dmg": {
+      "sign": false
+    }
+  }
+}
