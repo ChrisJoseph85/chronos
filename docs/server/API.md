@@ -101,3 +101,7 @@ GET  /api/stats/breakdown?node_id=&from=ISO&to=ISO -> [{node_id, title, kind, to
 - DDL: `timer_sessions.voided INTEGER NOT NULL DEFAULT 0` (`chronos.db.bootstrap`, single-sourced — CLI reads the same DDL). Existing DBs migrate on startup: `ALTER TABLE timer_sessions ADD COLUMN voided ...` when the column is missing; init is idempotent.
 - Breakdown: per DIRECT child of `node_id` (`{node_id, title, kind, total_ms}`), summed over `timer_sessions` joined through the parent walk (child + all descendants) overlapping the half-open window `[from, to)`; voided + pomodoro breaks excluded. `422` bad range (missing/invalid `from`/`to`, or `from >= to`); `404` unknown node. Same auth as everything else (401 without key).
 - Focus-shield trust note: the server honors the client's void flag and records it in audit — a self-discipline boundary (the void costs the session's elapsed time), not a multi-user guarantee.
+
+## v1.3 note 2026-10-06 (browser clients: CORS open, key via header)
+
+Additive only — no v1.1/v1.2 contract changes. `CORSMiddleware` with `allow_origins=["*"]`, methods `GET/POST/PUT/DELETE`, headers including `X-Chronos-Key`. Browser clients send the instance key via the `X-Chronos-Key` header.

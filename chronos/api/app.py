@@ -7,6 +7,7 @@ import sqlite3
 import time
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from chronos.api.auth import extract_key, verify_key  # noqa: F401 (public seam)
@@ -66,6 +67,13 @@ def create_app(db_path: str | None = None) -> FastAPI:
     _ensure_db(resolved)
 
     app = FastAPI(title="Chronos", version=_VERSION)
+    # v1.3 browser clients: CORS open, key via X-Chronos-Key header.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["*", "X-Chronos-Key"],
+    )
     app.state.db_path = resolved
     app.state.started_at = time.time()
     app.state.api_key_hash = _bootstrap_key(resolved)
