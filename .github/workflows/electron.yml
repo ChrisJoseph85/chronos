@@ -1,0 +1,37 @@
+name: electron
+
+on: [push, pull_request]
+
+jobs:
+  pack:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            artifact: chronos-linux
+          - os: windows-latest
+            target: win
+            artifact: chronos-win-unverified
+          - os: macos-latest
+            target: mac
+            artifact: chronos-mac-unverified
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run build
+      - run: npm run electron:pack -- --${{ matrix.target }}
+      - run: echo "NOTE: win/mac artifacts are built, not verified here (mac dmg is unsigned, no-sign)."
+        if: matrix.target != 'linux'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: web/release/

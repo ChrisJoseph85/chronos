@@ -8,3 +8,4 @@ android/app/build/
 android/build/
 web/node_modules/
 web/dist/
+web/release/
