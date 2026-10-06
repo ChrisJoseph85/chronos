@@ -33,6 +33,7 @@ const REQUIRED_CSS = ['shell/shell.css'];
 // UI-B placeholder hook: inlined only when present. Order is fixed so the
 // bundle is deterministic regardless of which subset has landed.
 const OPTIONAL_JS = [
+  'ai-context.js', // PLANNER-REBUILD shared schedule-context feed (must precede ai-row/planner lookups)
   'ai-row.js',
   'discovery.js',
   'screens/briefing.js',

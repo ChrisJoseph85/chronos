@@ -136,6 +136,22 @@
     });
   }
 
+  // PLANNER-REBUILD read-hook (CALL TIME ONLY — no styling/logic changes).
+  // Returns a one-line summary of recent planner schedule changes, or ''
+  // when the shared feed (globalThis.ChronosAiContext) is absent/empty.
+  // Guarded: never throws, never fetches. All data-action attributes and
+  // fetch paths below are byte-identical.
+  function recentScheduleLine() {
+    try {
+      var g = (typeof globalThis !== 'undefined') ? globalThis.ChronosAiContext : null;
+      if (g && typeof g.summarizeRecent === 'function') {
+        var s = g.summarizeRecent(3);
+        if (s) return String(s);
+      }
+    } catch (_) { /* best-effort only */ }
+    return '';
+  }
+
   // mountAiRow(container, ctx?) -> { row, micBtn, form, input, statusEl }
   // ctx: { getServerUrl?, getKey?, fetch?, onAsk?(text)->Promise<string>,
   //        contextLabel?, voiceBlob?() }
@@ -266,8 +282,15 @@
       }
       setStatus('Sending…');
       var askFn = null;
+      // Include recent planner schedule changes in the ask context
+      // (no-op '' when the feed is absent/empty — payloads unchanged).
+      var sendText = text;
+      try {
+        var scheduleLine = recentScheduleLine();
+        if (scheduleLine) sendText = text + '\n\n[' + scheduleLine + ']';
+      } catch (_) { sendText = text; }
       if (typeof ctx.onAsk === 'function') {
-        askFn = function () { return ctx.onAsk(text); };
+        askFn = (function (t) { return function () { return ctx.onAsk(t); }; })(sendText);
       } else {
         var fetchFn = fetchOf(ctx);
         if (!fetchFn) {
@@ -277,7 +300,7 @@
         }
         var serverUrl = serverUrlOf(ctx);
         var key = keyOf(ctx);
-        askFn = function () { return defaultAsk(fetchFn, serverUrl, key, text); };
+        askFn = (function (t) { return function () { return defaultAsk(fetchFn, serverUrl, key, t); }; })(sendText);
       }
       var result;
       try {
