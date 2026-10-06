@@ -161,6 +161,12 @@ proven-incomplete files, re-dispatch missing.
   APK ever). Full suite: 437 passed + 4 skipped (441 collected), 0 failed.
   Gaps: no device run (yours); QUERY_ALL_PACKAGES needs Play justification
   if published (F-Droid fine); ntfy topic wiring manual.
+- 2026-10-06 ~09:1x UTC — Phone had TWO apps (old dev.chronos.app.debug +
+  rewrite com.chronos.app) — user was opening the old one. Old uninstalled;
+  only com.chronos.app remains. Rewrite is the app.
+- 2026-10-06 ~09:2x UTC — Polish round (user): calendar rebuilt deepest
+  (android + desktop), labels capitalized + all-visible, mic/icons,
+  visual blocklist picker. Snapshot first, two agents jointly.
 
 - 2026-10-05 ~19:2x UTC — User override: dispatch all 6 CODE agents simultaneously
   (overrides MANAGER-PLAN 4-cap for this batch). Snapshot first, then joint
