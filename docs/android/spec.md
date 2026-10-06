@@ -86,3 +86,16 @@ No APK claimed without a local `assembleDebug` artifact.
   `{node_id,title,kind,total_ms}` from timer_sessions + parent walk,
   voided excluded. Powers Stats drilldown.
 - API.md v1.2 amendment note. No other contract changes.
+
+## 9. Server auto-discovery (Settings)
+
+Manual URL entry stays. Auto-find button scans for the server (which the
+user runs with `--port 693`, e.g. `CHRONOS_PORT=693 chronos serve`):
+order 127.0.0.1 → device's LAN /24 subnet hosts, same port throughout
+(port field editable, default 693). Per host: `GET /api/health` (short
+timeout, background, cancelable, progress UI), then an authenticated
+probe with the SAVED instance key only (never a pasted/typed key at
+scan time). First host answering healthy + authorized wins and fills the
+URL field. Sweep bounded (connect timeout ≤1s/host, max ~254 hosts,
+user-cancelable). Server default port stays 8080 — discovery port is an
+app setting, not a server change.
