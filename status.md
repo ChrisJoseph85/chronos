@@ -190,3 +190,4 @@ proven-incomplete files, re-dispatch missing.
 - 2026-10-06 ~10:5x UTC — User approved electron spec (+per-screen AI voice+text like Android). Snapshot, dispatch direct-electron rebuild.
 - 2026-10-06 ~11:5x UTC — Subagents switched to Muse Spark (was MiMo); user GO on app2 4-way split. Snapshot, dispatch SHELL+UI-A+UI-B.
 - 2026-10-06 ~12:1x UTC — Restarted; project opencode.json removed (global muse-spark inherits). Dispatch SHELL+UI-A+UI-B.
+- 2026-10-06 ~13:2x UTC — User wants Google-style planner: day columns, morning-evening grid, expandable days, draggable buckets. Snapshot, questions, then dispatch.
