@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Chronos</string>
-    <string name="server_down">server is down</string>
-    <string name="server_too_old">server too old</string>
-    <string name="stop_current_first">stop current first</string>
-    <string name="usage_rationale">used only to detect a blocked app opening; no usage statistics are collected, stored, or sent anywhere.</string>
-    <style name="Theme.Chronos" parent="Theme.Material3.DayNight.NoActionBar"/>
-</resources>

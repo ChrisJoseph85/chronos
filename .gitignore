@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .env
+android/.gradle/
+android/app/build/
+android/build/

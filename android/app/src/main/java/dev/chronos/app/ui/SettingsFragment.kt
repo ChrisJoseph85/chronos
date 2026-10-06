@@ -15,7 +15,9 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import dev.chronos.app.ChronosApp
 import dev.chronos.app.net.ProviderEntry
+import dev.chronos.app.net.ServerDiscovery
 import dev.chronos.app.shield.ShieldPrefsStore
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -44,6 +46,57 @@ class SettingsFragment : Fragment() {
         body.addView(url)
         body.addView(key)
         body.addView(save)
+
+        // §9 auto-discovery: port field + Auto-find. Manual entry stays untouched.
+        val port = EditText(ctx).apply {
+            hint = "Discovery port (default 693)"
+            setText(ServerDiscovery.DEFAULT_PORT.toString())
+        }
+        val progress = TextView(ctx).apply { text = "" }
+        val autoFind = Button(ctx).apply { text = "Auto-find server" }
+        val cancel = Button(ctx).apply { text = "Cancel"; visibility = View.GONE }
+        var sweep: Job? = null
+        autoFind.setOnClickListener {
+            val p = port.text.toString().toIntOrNull() ?: ServerDiscovery.DEFAULT_PORT
+            val savedKey = app.auth.instanceKey // SAVED key only; never a typed key.
+            val hosts = ServerDiscovery.candidates(p, ServerDiscovery.deviceLanIp())
+            progress.text = "Scanning 0/${hosts.size}…"
+            autoFind.isEnabled = false
+            cancel.visibility = View.VISIBLE
+            sweep = app.io.launch {
+                val discovery = ServerDiscovery.realProbes()
+                val win = try {
+                    discovery.findFirst(hosts, savedKey) { n, total, host ->
+                        activity?.runOnUiThread { progress.text = "Scanning $n/$total… $host" }
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+                activity?.runOnUiThread {
+                    autoFind.isEnabled = true
+                    cancel.visibility = View.GONE
+                    if (win != null) {
+                        url.setText(win) // winner fills URL field; user still taps Save.
+                        progress.text = "Found: $win"
+                    } else if (progress.text.startsWith("Cancelled")) {
+                        // keep cancel message
+                    } else {
+                        progress.text = "Not found on port $p."
+                    }
+                }
+            }
+        }
+        cancel.setOnClickListener {
+            sweep?.cancel()
+            sweep = null
+            progress.text = "Cancelled."
+            autoFind.isEnabled = true
+            cancel.visibility = View.GONE
+        }
+        body.addView(port)
+        body.addView(autoFind)
+        body.addView(cancel)
+        body.addView(progress)
 
         body.addView(TextView(ctx).apply {
             text = "Usage access: used only to detect a blocked app opening; " +
