@@ -9,3 +9,6 @@ android/build/
 web/node_modules/
 web/dist/
 web/release/
+app-electron/node_modules/
+app-electron/release/
+app-electron/dist/

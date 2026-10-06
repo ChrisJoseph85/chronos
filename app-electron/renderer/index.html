@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Single-file bundle: all JS/CSS is inlined by scripts/inline-dist.js,
+         so 'unsafe-inline' covers our own code only. No remote code is ever
+         loaded; API traffic goes through fetch() to the LAN server. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src http://* https://* self" />
+    <title>Chronos</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="health-banner" class="health hidden"></div>
+    <div id="shell">
+      <aside id="sidebar" aria-label="Primary">
+        <div class="brand"><span class="brand-dot"></span><span class="brand-name">Chronos</span></div>
+        <nav id="nav">
+          <button data-view="planner" class="active"><span class="ico">🗓</span><span class="lbl">Planner</span></button>
+          <button data-view="timer"><span class="ico">⏱</span><span class="lbl">Timer+Log</span></button>
+          <button data-view="briefing"><span class="ico">📰</span><span class="lbl">Briefing</span></button>
+          <button data-view="stats"><span class="ico">📊</span><span class="lbl">Stats</span></button>
+          <button data-view="settings"><span class="ico">⚙</span><span class="lbl">Settings</span></button>
+        </nav>
+        <button id="collapse" title="Collapse sidebar">◀</button>
+      </aside>
+      <main id="view"></main>
+    </div>
+    <script src="./src/app.js" type="module"></script>
+  </body>
+</html>
