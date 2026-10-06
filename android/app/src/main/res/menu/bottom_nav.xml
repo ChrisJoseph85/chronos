@@ -3,8 +3,6 @@
     <item android:id="@+id/nav_home" android:title="Home" />
     <item android:id="@+id/nav_calendar" android:title="Calendar" />
     <item android:id="@+id/nav_tasks" android:title="Tasks" />
-    <item android:id="@+id/nav_projects" android:title="Projects" />
     <item android:id="@+id/nav_briefing" android:title="Briefing" />
-    <item android:id="@+id/nav_stats" android:title="Stats" />
-    <item android:id="@+id/nav_settings" android:title="Settings" />
+    <item android:id="@+id/nav_more" android:title="More" />
 </menu>

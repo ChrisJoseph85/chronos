@@ -22,6 +22,13 @@ import kotlinx.coroutines.launch
 import android.content.Intent
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        /** Overflow destinations (More screen) — not bottom-nav items (max 5). */
+        const val DEST_PROJECTS = 9001
+        const val DEST_STATS = 9002
+        const val DEST_SETTINGS = 9003
+    }
+
     private lateinit var app: ChronosApp
     private lateinit var banner: TextView
     private lateinit var voice: VoiceBarView
@@ -60,14 +67,17 @@ class MainActivity : AppCompatActivity() {
         refreshGate()
     }
 
+    fun open(id: Int) = show(id)
+
     private fun show(id: Int) {
         val f = when (id) {
             R.id.nav_calendar -> CalendarFragment()
             R.id.nav_tasks -> TreeFragment.newInstance(TreeFragment.ROOT_TASKS)
-            R.id.nav_projects -> TreeFragment.newInstance(TreeFragment.ROOT_PROJECTS)
             R.id.nav_briefing -> BriefingFragment()
-            R.id.nav_stats -> StatsFragment()
-            R.id.nav_settings -> SettingsFragment()
+            R.id.nav_more -> MoreFragment()
+            DEST_PROJECTS -> TreeFragment.newInstance(TreeFragment.ROOT_PROJECTS)
+            DEST_STATS -> StatsFragment()
+            DEST_SETTINGS -> SettingsFragment()
             else -> HomeFragment()
         }
         if (f is CalendarFragment) f.onSlotTap = { text -> voice.prefill(text) }

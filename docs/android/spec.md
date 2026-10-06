@@ -19,7 +19,11 @@ Device/emulator runs are the user's — never claimed here.
 - Calendar sync = `GET /api/events?from&to` ranges + `/ws` `patch` frames.
 - WS `timer` frames drive the home card; `proposal`/`question` drive cards.
 
-## 2. Screens (bottom nav)
+## 2. Screens (bottom nav: 5 tabs + More)
+
+BottomNavigationView hard limit is 5 items (crashed on launch with 7 —
+fixed 2026-10-06). Tabs: Home, Calendar, Tasks, Briefing, **More**.
+More screen holds Projects, Stats, Settings buttons (same fragments).
 
 - **Home** — timer card: mode selector (stopwatch | countdown | pomodoro),
   target picker (project/tag/task via nodes API), strict-shield toggle
