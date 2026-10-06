@@ -76,6 +76,33 @@
     return n;
   }
 
+  // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
+  // :root theme variables with local fallbacks, so controls never render
+  // as raw white when the theme palette has not landed.
+  function polish(node, kind) {
+    if (!node || !node.style) return node;
+    try {
+      if (kind === 'primary') {
+        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+      } else if (kind === 'banner') {
+        node.style.background = 'var(--danger-tint, #3d1f1d)';
+        node.style.border = '1px solid var(--danger, #e5534b)';
+        node.style.color = 'var(--banner-text, #ffd7d5)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '8px 12px';
+        node.style.margin = '8px 0';
+      } else if (kind === 'field') {
+        node.style.background = 'var(--bg, #14161a)';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.color = 'var(--text, #e8eaed)';
+        node.style.padding = '7px 9px';
+        node.style.fontSize = '13px';
+      }
+    } catch (_) { /* styling only — never break clicks */ }
+    return node;
+  }
+
   function fmtMs(ms) {
     ms = Number(ms) || 0;
     var mins = Math.round(ms / 60000);
@@ -135,12 +162,13 @@
     var doc = (container && container.ownerDocument) || (typeof document !== 'undefined' ? document : null);
     if (!doc || !container) return null;
 
-    var screen = el(doc, 'section', 'chronos-screen chronos-stats');
+    var screen = el(doc, 'section', 'chronos-screen chronos-stats screen');
     screen.setAttribute('data-screen', 'stats');
 
     screen.appendChild(el(doc, 'h2', 'chronos-screen-title', 'Stats'));
+    screen.appendChild(el(doc, 'p', 'sub', 'Offline — no server calls until you press “Load stats”.'));
 
-    var banner = el(doc, 'div', 'chronos-banner');
+    var banner = polish(el(doc, 'div', 'chronos-banner status'), 'banner');
     banner.setAttribute('data-part', 'banner');
     banner.hidden = true;
     screen.appendChild(banner);
@@ -154,14 +182,16 @@
       banner.textContent = '';
     }
 
-    var controls = el(doc, 'div', 'chronos-row');
-    var fromInput = el(doc, 'input', 'chronos-from');
+    var rangeCard = el(doc, 'div', 'card');
+    rangeCard.appendChild(el(doc, 'h3', null, 'Range'));
+    var controls = el(doc, 'div', 'chronos-row row');
+    var fromInput = polish(el(doc, 'input', 'chronos-from'), 'field');
     fromInput.type = 'date';
     fromInput.setAttribute('data-action', 'stats-from');
-    var toInput = el(doc, 'input', 'chronos-to');
+    var toInput = polish(el(doc, 'input', 'chronos-to'), 'field');
     toInput.type = 'date';
     toInput.setAttribute('data-action', 'stats-to');
-    var loadBtn = el(doc, 'button', 'chronos-btn', 'Load stats');
+    var loadBtn = polish(el(doc, 'button', 'chronos-btn btn primary', 'Load stats'), 'primary');
     loadBtn.type = 'button';
     loadBtn.setAttribute('data-action', 'stats-load');
     controls.appendChild(el(doc, 'span', null, 'From '));
@@ -169,13 +199,16 @@
     controls.appendChild(el(doc, 'span', null, 'To '));
     controls.appendChild(toInput);
     controls.appendChild(loadBtn);
-    screen.appendChild(controls);
+    rangeCard.appendChild(controls);
+    screen.appendChild(rangeCard);
 
-    var summary = el(doc, 'div', 'chronos-stats-summary');
+    var summary = el(doc, 'div', 'chronos-stats-summary status');
     summary.setAttribute('data-part', 'stats-summary');
     summary.textContent = 'Press “Load stats”. (No server calls until you do.)';
     screen.appendChild(summary);
 
+    var chartCard = el(doc, 'div', 'card');
+    chartCard.appendChild(el(doc, 'h3', null, 'Chart'));
     var canvas = null;
     try {
       canvas = doc.createElement('canvas');
@@ -183,12 +216,19 @@
       canvas.setAttribute('data-part', 'stats-chart');
       canvas.width = 600;
       canvas.height = 240;
-      screen.appendChild(canvas);
+      try {
+        canvas.style.maxWidth = '100%';
+        canvas.style.borderRadius = 'var(--radius, 8px)';
+        canvas.style.border = '1px solid var(--border, #333945)';
+        canvas.style.background = 'var(--bg, #14161a)';
+      } catch (_) { /* ignore */ }
+      chartCard.appendChild(canvas);
     } catch (_) {
       canvas = null;
     }
+    screen.appendChild(chartCard);
 
-    var tableWrap = el(doc, 'div', 'chronos-stats-table-wrap');
+    var tableWrap = el(doc, 'div', 'chronos-stats-table-wrap card');
     tableWrap.setAttribute('data-part', 'stats-table');
     screen.appendChild(tableWrap);
 
@@ -229,7 +269,7 @@
         }
       }
       // Always render the accessible table too (and as the fallback).
-      var table = el(doc, 'table', 'chronos-stats-table');
+      var table = el(doc, 'table', 'chronos-stats-table data');
       var head = el(doc, 'tr');
       head.appendChild(el(doc, 'th', null, 'Item'));
       head.appendChild(el(doc, 'th', null, 'Time'));
@@ -296,6 +336,10 @@
       );
     });
 
+    var aiCard = el(doc, 'div', 'card');
+    aiCard.appendChild(el(doc, 'h3', null, 'Ask Chronos'));
+    screen.appendChild(aiCard);
+
     container.appendChild(screen);
 
     var aiRow = null;
@@ -304,7 +348,7 @@
         (typeof globalThis !== 'undefined' && globalThis.ChronosAiRow &&
          typeof globalThis.ChronosAiRow.mountAiRow === 'function'
           ? globalThis.ChronosAiRow.mountAiRow : null);
-      if (m) aiRow = m(screen, ctx);
+      if (m) aiRow = m(aiCard, ctx);
     } catch (_) {
       aiRow = null;
     }

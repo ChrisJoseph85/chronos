@@ -40,6 +40,19 @@
     return n;
   }
 
+  // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
+  // :root theme variables with local fallbacks, so controls never render
+  // as raw white when the theme palette has not landed.
+  function polish(node, kind) {
+    if (!node || !node.style) return node;
+    try {
+      if (kind === 'primary') {
+        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+      }
+    } catch (_) { /* styling only — never break clicks */ }
+    return node;
+  }
+
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   function isoDate(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
@@ -241,7 +254,7 @@
     screen.appendChild(el(doc, 'p', 'sub', 'Offline — calendar renders locally; lists load on demand.'));
 
     var split = el(doc, 'div', 'split');
-    var paneCal = el(doc, 'div', 'pane');
+    var paneCal = el(doc, 'div', 'pane card');
     paneCal.appendChild(el(doc, 'h3', null, 'Calendar'));
     var calMount = el(doc, 'div', 'planner-calendar');
     calMount.id = 'planner-calendar';
@@ -260,7 +273,7 @@
     var nodeCard = el(doc, 'div', 'card');
     nodeCard.appendChild(el(doc, 'h3', null, 'Nodes'));
     var nodeRow = el(doc, 'div', 'row');
-    var loadNodes = el(doc, 'button', 'btn', 'Load nodes');
+    var loadNodes = polish(el(doc, 'button', 'btn primary', 'Load nodes'), 'primary');
     loadNodes.type = 'button';
     loadNodes.id = 'planner-load-nodes';
     nodeRow.appendChild(loadNodes);
@@ -273,7 +286,7 @@
     var tagCard = el(doc, 'div', 'card');
     tagCard.appendChild(el(doc, 'h3', null, 'Tags'));
     var tagRow = el(doc, 'div', 'row');
-    var loadTags = el(doc, 'button', 'btn', 'Load tags');
+    var loadTags = polish(el(doc, 'button', 'btn primary', 'Load tags'), 'primary');
     loadTags.type = 'button';
     loadTags.id = 'planner-load-tags';
     tagRow.appendChild(loadTags);

@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Chronos desktop shell (Electron, direct app)",
+  "homepage": "https://github.com/ChrisJoseph85/Chronos",
   "main": "main/main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test tests-main/",
-    "pack": "electron-builder --linux AppImage deb",
-    "pack:linux": "electron-builder --linux AppImage deb",
+    "pack": "electron-builder --linux AppImage",
+    "pack:linux": "electron-builder --linux AppImage",
     "pack:win": "electron-builder --win NSIS",
     "pack:mac": "electron-builder --mac dmg"
   },

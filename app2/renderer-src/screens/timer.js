@@ -41,6 +41,40 @@
     return n;
   }
 
+  // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
+  // :root theme variables with local fallbacks, so controls never render
+  // as raw white when the theme palette has not landed.
+  function polish(node, kind) {
+    if (!node || !node.style) return node;
+    try {
+      if (kind === 'primary') {
+        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+      } else if (kind === 'field') {
+        node.style.background = 'var(--bg, #14161a)';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.color = 'var(--text, #e8eaed)';
+        node.style.padding = '7px 9px';
+        node.style.fontSize = '13px';
+      } else if (kind === 'pill') {
+        node.style.display = 'inline-flex';
+        node.style.alignItems = 'center';
+        node.style.gap = '8px';
+        node.style.background = 'var(--panel-2, #23272f)';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '6px 10px';
+        node.style.margin = '8px 0';
+        node.style.color = 'var(--text, #e8eaed)';
+      } else if (kind === 'check') {
+        node.style.accentColor = 'var(--accent, #4f9cf9)';
+        node.style.width = '16px';
+        node.style.height = '16px';
+      }
+    } catch (_) { /* styling only — never break clicks */ }
+    return node;
+  }
+
   function showBanner(doc, msg) {
     var sh = shell();
     if (sh) sh.showBanner(doc, msg);
@@ -125,8 +159,8 @@
         modeBtns[m].setAttribute('aria-pressed', m === mode ? 'true' : 'false');
       });
     }
-    var strictLabel = el(doc, 'label', 'check', null);
-    var strict = doc.createElement('input');
+    var strictLabel = polish(el(doc, 'label', 'check', null), 'pill');
+    var strict = polish(doc.createElement('input'), 'check');
     strict.type = 'checkbox';
     strict.id = 'timer-strict';
     try {
@@ -144,24 +178,24 @@
     var sessCard = el(doc, 'div', 'card');
     sessCard.appendChild(el(doc, 'h3', null, 'Session'));
     var sessRow = el(doc, 'div', 'row');
-    var labelInput = doc.createElement('input');
+    var labelInput = polish(doc.createElement('input'), 'field');
     labelInput.type = 'text';
     labelInput.id = 'timer-label';
     labelInput.placeholder = 'Label (e.g. deep work)';
-    var targetInput = doc.createElement('input');
+    var targetInput = polish(doc.createElement('input'), 'field');
     targetInput.type = 'number';
     targetInput.id = 'timer-target-minutes';
     targetInput.min = '1';
     targetInput.placeholder = 'Target min (countdown)';
     targetInput.style.width = '12em';
-    var startBtn = el(doc, 'button', 'btn primary', 'Start');
+    var startBtn = polish(el(doc, 'button', 'btn primary', 'Start'), 'primary');
     startBtn.type = 'button';
     startBtn.id = 'timer-start';
     var stopBtn = el(doc, 'button', 'btn', 'Stop');
     stopBtn.type = 'button';
     stopBtn.id = 'timer-stop';
-    var voidLabel = el(doc, 'label', 'check', null);
-    var voidBox = doc.createElement('input');
+    var voidLabel = polish(el(doc, 'label', 'check', null), 'pill');
+    var voidBox = polish(doc.createElement('input'), 'check');
     voidBox.type = 'checkbox';
     voidBox.id = 'timer-void';
     voidLabel.appendChild(voidBox);
@@ -234,7 +268,7 @@
     sumBtn.id = 'timer-summary-load';
     sumRow.appendChild(sumBtn);
     sumCard.appendChild(sumRow);
-    var summary = el(doc, 'div', 'summary');
+    var summary = el(doc, 'div', 'summary status');
     summary.id = 'timer-summary';
     summary.textContent = 'No summary loaded.';
     sumCard.appendChild(summary);
@@ -272,14 +306,14 @@
     var bdCard = el(doc, 'div', 'card');
     bdCard.appendChild(el(doc, 'h3', null, 'Breakdown drill'));
     var bdRow = el(doc, 'div', 'row');
-    var nodeInput = doc.createElement('input');
+    var nodeInput = polish(doc.createElement('input'), 'field');
     nodeInput.type = 'text';
     nodeInput.id = 'breakdown-node';
     nodeInput.placeholder = 'Node id';
-    var fromInput = doc.createElement('input');
+    var fromInput = polish(doc.createElement('input'), 'field');
     fromInput.type = 'date';
     fromInput.id = 'breakdown-from';
-    var toInput = doc.createElement('input');
+    var toInput = polish(doc.createElement('input'), 'field');
     toInput.type = 'date';
     toInput.id = 'breakdown-to';
     var drillBtn = el(doc, 'button', 'btn', 'Drill down');
@@ -290,7 +324,7 @@
     bdRow.appendChild(toInput);
     bdRow.appendChild(drillBtn);
     bdCard.appendChild(bdRow);
-    var bdResult = el(doc, 'div', 'breakdown-result');
+    var bdResult = el(doc, 'div', 'breakdown-result status');
     bdResult.id = 'breakdown-result';
     bdResult.textContent = 'No breakdown loaded.';
     bdCard.appendChild(bdResult);
@@ -370,26 +404,26 @@
     preList.id = 'presets-list';
     preCard.appendChild(preList);
     var preForm = el(doc, 'div', 'row');
-    var preName = doc.createElement('input');
+    var preName = polish(doc.createElement('input'), 'field');
     preName.type = 'text';
     preName.id = 'preset-name';
     preName.placeholder = 'Name';
-    var preFocus = doc.createElement('input');
+    var preFocus = polish(doc.createElement('input'), 'field');
     preFocus.type = 'number';
     preFocus.id = 'preset-focus';
     preFocus.min = '1';
     preFocus.placeholder = 'Focus min';
-    var preBreak = doc.createElement('input');
+    var preBreak = polish(doc.createElement('input'), 'field');
     preBreak.type = 'number';
     preBreak.id = 'preset-break';
     preBreak.min = '0';
     preBreak.placeholder = 'Break min';
-    var preCycles = doc.createElement('input');
+    var preCycles = polish(doc.createElement('input'), 'field');
     preCycles.type = 'number';
     preCycles.id = 'preset-cycles';
     preCycles.min = '1';
     preCycles.placeholder = 'Cycles';
-    var preAdd = el(doc, 'button', 'btn', 'Add preset');
+    var preAdd = polish(el(doc, 'button', 'btn primary', 'Add preset'), 'primary');
     preAdd.type = 'button';
     preAdd.id = 'preset-add';
     preForm.appendChild(preName);

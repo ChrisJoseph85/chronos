@@ -27,6 +27,61 @@
   var WIDTH_KEY = 'chronos.sidebar.width';
   var SERVER_URL_KEY = 'chronos.serverUrl';
   var SERVER_KEY_KEY = 'chronos.key';
+  // THEME (class/toggle only — no logic changes elsewhere).
+  var THEME_KEY = 'chronos.theme';
+  var THEME_NAME = 'jarvis';
+
+  // Apply the JARVIS theme class + data attribute. Pure DOM, call-time
+  // only; never touches network or the preload bridge.
+  function applyTheme(doc, name) {
+    try {
+      var root = doc ? doc.documentElement : null;
+      if (!root) return name || THEME_NAME;
+      var theme = name || storeGet(THEME_KEY, THEME_NAME) || THEME_NAME;
+      root.setAttribute('data-theme', theme);
+      var body = doc.body;
+      if (body) {
+        if (theme === THEME_NAME) body.classList.add('jarvis-theme');
+        else body.classList.remove('jarvis-theme');
+      }
+      var toggles = doc.querySelectorAll('[data-theme-toggle]');
+      for (var i = 0; i < toggles.length; i++) {
+        try {
+          toggles[i].setAttribute('aria-pressed', theme === THEME_NAME ? 'true' : 'false');
+        } catch (_) { /* ignore */ }
+      }
+      return theme;
+    } catch (_) {
+      return name || THEME_NAME;
+    }
+  }
+
+  function toggleTheme(doc) {
+    var next;
+    try {
+      var cur = storeGet(THEME_KEY, THEME_NAME);
+      next = (cur === THEME_NAME) ? 'default' : THEME_NAME;
+      storeSet(THEME_KEY, next);
+    } catch (_) {
+      next = THEME_NAME;
+    }
+    return applyTheme(doc, next);
+  }
+
+  function initTheme(doc) {
+    if (!doc) return;
+    applyTheme(doc);
+    try {
+      var toggles = doc.querySelectorAll('[data-theme-toggle]');
+      for (var i = 0; i < toggles.length; i++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            toggleTheme(doc);
+          });
+        })(toggles[i]);
+      }
+    } catch (_) { /* theme toggle is optional */ }
+  }
 
   function storeGet(key, fallback) {
     try {
@@ -210,6 +265,7 @@
 
   function initShell(doc) {
     if (!doc) return;
+    initTheme(doc);
     initSidebar(doc);
     initSplitters(doc);
     var start = storeGet(SCREEN_KEY, 'planner');
@@ -236,5 +292,7 @@
     storeGet: storeGet,
     storeSet: storeSet,
     defaultCtx: defaultCtx,
+    applyTheme: applyTheme,
+    toggleTheme: toggleTheme,
   };
 });

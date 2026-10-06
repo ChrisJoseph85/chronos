@@ -22,18 +22,59 @@
   'use strict';
 
   function safeNotify(title, body) {
+    var polishedTitle = title;
+    var polishedBody = body;
+    try {
+      polishedTitle = notifyTitle(title);
+      polishedBody = notifyText(body);
+    } catch (_) { /* fall back to raw text */ }
     try {
       if (typeof window !== 'undefined' && typeof window.chronosNotify === 'function') {
-        window.chronosNotify({ title: title, body: body });
+        window.chronosNotify({ title: polishedTitle, body: polishedBody });
         return;
       }
     } catch (_) { /* fall through to contract shape */ }
     try {
       if (typeof window !== 'undefined' && window.chronos &&
           typeof window.chronos.notify === 'function') {
-        window.chronos.notify({ title: title, body: body });
+        window.chronos.notify({ title: polishedTitle, body: polishedBody });
       }
     } catch (_) { /* notifications are best-effort */ }
+  }
+
+  // ENGAGEMENT-POLISH: notification copy helpers (TEXT ONLY — no styling).
+  // Crisp Title Case headlines + one-line Iron-Man-butler-voiced bodies,
+  // capped at 120 chars, never raw JSON/ids. All total (never throw).
+  var NOTIFY_TEXT_MAX = 120;
+
+  function notifyTitle(s) {
+    try {
+      return String(s == null ? '' : s).split(/\s+/).filter(function (w) {
+        return w.length > 0;
+      }).map(function (w) {
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      }).join(' ');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function notifyText(s) {
+    var t = '';
+    try {
+      t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+    } catch (_) {
+      return '';
+    }
+    if (!t) return t;
+    if (/^[{[]/.test(t)) {
+      try {
+        JSON.parse(t);
+        return 'The details are ready in the app, sir.';
+      } catch (_) { /* not JSON — fall through */ }
+    }
+    if (t.length > NOTIFY_TEXT_MAX) return t.slice(0, NOTIFY_TEXT_MAX - 1) + '…';
+    return t;
   }
 
   function storageGet(key, fallback) {
@@ -103,32 +144,34 @@
     var doc = (container && container.ownerDocument) || (typeof document !== 'undefined' ? document : null);
     if (!doc || !container) return null;
 
-    var row = el(doc, 'div', 'chronos-ai-row');
+    var row = el(doc, 'div', 'chronos-ai-row jarvis-ai-row');
     row.setAttribute('data-screen-part', 'ai-row');
+    row.setAttribute('data-theme', 'jarvis');
 
-    var micBtn = el(doc, 'button', 'chronos-ai-mic', 'Mic');
+    var micBtn = el(doc, 'button', 'chronos-ai-mic jarvis-mic mic-ring', 'Mic');
     micBtn.type = 'button';
     micBtn.setAttribute('data-action', 'ai-voice');
     micBtn.title = 'Send voice note (POST /api/voice)';
 
-    var form = el(doc, 'form', 'chronos-ai-form');
+    var form = el(doc, 'form', 'chronos-ai-form jarvis-ai-form');
     form.setAttribute('data-action', 'ai-form');
-    var input = el(doc, 'input', 'chronos-ai-input');
+    var input = el(doc, 'input', 'chronos-ai-input jarvis-ai-input');
     input.type = 'text';
     input.name = 'ai-text';
     input.placeholder = 'Ask Chronos…';
     input.setAttribute('data-action', 'ai-text');
-    var sendBtn = el(doc, 'button', 'chronos-ai-send', 'Send');
+    input.setAttribute('aria-label', 'Ask Chronos');
+    var sendBtn = el(doc, 'button', 'chronos-ai-send btn primary jarvis-send', 'Send');
     sendBtn.type = 'submit';
     sendBtn.setAttribute('data-action', 'ai-send');
     form.appendChild(input);
     form.appendChild(sendBtn);
 
-    var statusEl = el(doc, 'div', 'chronos-ai-status');
+    var statusEl = el(doc, 'div', 'chronos-ai-status jarvis-ai-status');
     statusEl.setAttribute('data-part', 'ai-status');
     statusEl.setAttribute('role', 'status');
 
-    var banner = el(doc, 'div', 'chronos-banner');
+    var banner = el(doc, 'div', 'chronos-banner jarvis-banner');
     banner.setAttribute('data-part', 'ai-banner');
     banner.hidden = true;
 
@@ -162,6 +205,7 @@
       var key = keyOf(ctx);
       setStatus('Listening… sending…');
       micBtn.disabled = true;
+      try { micBtn.classList.add('recording'); } catch (_) { /* styling only */ }
       var audioBlob = null;
       try {
         if (typeof ctx.voiceBlob === 'function') {
@@ -199,12 +243,14 @@
       ).then(
         function (data) {
           micBtn.disabled = false;
+          try { micBtn.classList.remove('recording'); } catch (_) { /* styling only */ }
           var t = (data && (data.transcript || data.message)) || 'Voice note sent.';
           setStatus(t);
-          safeNotify('Chronos voice', t);
+          safeNotify('Voice Note Transcribed', 'Transcribed for you, sir — ' + t);
         },
         function (err) {
           micBtn.disabled = true; // graceful disabled when server down
+          try { micBtn.classList.remove('recording'); } catch (_) { /* styling only */ }
           setStatus('Voice unavailable (server down).');
           showBanner('Voice failed: ' + (err && err.message ? err.message : err));
         }
@@ -245,7 +291,7 @@
         function (msg) {
           setStatus(String(msg == null ? 'OK' : msg));
           try { input.value = ''; } catch (_) { /* ignore */ }
-          safeNotify('Chronos', String(msg == null ? 'OK' : msg));
+          safeNotify('Chronos Reply', 'At your service, sir — ' + String(msg == null ? 'OK' : msg));
         },
         function (err) {
           setStatus('Send failed (server down?).');

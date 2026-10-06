@@ -33,18 +33,59 @@
   var NOTIFY_CATS = ['reminders', 'timer', 'briefing'];
 
   function safeNotify(title, body) {
+    var polishedTitle = title;
+    var polishedBody = body;
+    try {
+      polishedTitle = notifyTitle(title);
+      polishedBody = notifyText(body);
+    } catch (_) { /* fall back to raw text */ }
     try {
       if (typeof window !== 'undefined' && typeof window.chronosNotify === 'function') {
-        window.chronosNotify({ title: title, body: body });
+        window.chronosNotify({ title: polishedTitle, body: polishedBody });
         return;
       }
     } catch (_) { /* fall through */ }
     try {
       if (typeof window !== 'undefined' && window.chronos &&
           typeof window.chronos.notify === 'function') {
-        window.chronos.notify({ title: title, body: body });
+        window.chronos.notify({ title: polishedTitle, body: polishedBody });
       }
     } catch (_) { /* best-effort */ }
+  }
+
+  // ENGAGEMENT-POLISH: notification copy helpers (TEXT ONLY — no styling).
+  // Crisp Title Case headlines + one-line Iron-Man-butler-voiced bodies,
+  // capped at 120 chars, never raw JSON/ids. All total (never throw).
+  var NOTIFY_TEXT_MAX = 120;
+
+  function notifyTitle(s) {
+    try {
+      return String(s == null ? '' : s).split(/\s+/).filter(function (w) {
+        return w.length > 0;
+      }).map(function (w) {
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      }).join(' ');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function notifyText(s) {
+    var t = '';
+    try {
+      t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+    } catch (_) {
+      return '';
+    }
+    if (!t) return t;
+    if (/^[{[]/.test(t)) {
+      try {
+        JSON.parse(t);
+        return 'The details are ready in the app, sir.';
+      } catch (_) { /* not JSON — fall through */ }
+    }
+    if (t.length > NOTIFY_TEXT_MAX) return t.slice(0, NOTIFY_TEXT_MAX - 1) + '…';
+    return t;
   }
 
   function storageGet(key, fallback) {
@@ -98,6 +139,47 @@
     return n;
   }
 
+  // SCREENS-STYLE polish only (no logic, no fetch): consume the shell
+  // :root theme variables with local fallbacks, so controls never render
+  // as raw white when the theme palette has not landed.
+  function polish(node, kind) {
+    if (!node || !node.style) return node;
+    try {
+      if (kind === 'primary') {
+        node.style.boxShadow = 'var(--btn-glow, 0 0 10px rgba(79,156,249,.35))';
+      } else if (kind === 'banner') {
+        node.style.background = 'var(--danger-tint, #3d1f1d)';
+        node.style.border = '1px solid var(--danger, #e5534b)';
+        node.style.color = 'var(--banner-text, #ffd7d5)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '8px 12px';
+        node.style.margin = '8px 0';
+      } else if (kind === 'field') {
+        node.style.background = 'var(--bg, #14161a)';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.color = 'var(--text, #e8eaed)';
+        node.style.padding = '7px 9px';
+        node.style.fontSize = '13px';
+      } else if (kind === 'pill') {
+        node.style.display = 'inline-flex';
+        node.style.alignItems = 'center';
+        node.style.gap = '8px';
+        node.style.background = 'var(--panel-2, #23272f)';
+        node.style.border = '1px solid var(--border, #333945)';
+        node.style.borderRadius = 'var(--radius, 8px)';
+        node.style.padding = '6px 10px';
+        node.style.margin = '8px 0';
+        node.style.color = 'var(--text, #e8eaed)';
+      } else if (kind === 'check') {
+        node.style.accentColor = 'var(--accent, #4f9cf9)';
+        node.style.width = '16px';
+        node.style.height = '16px';
+      }
+    } catch (_) { /* styling only — never break clicks */ }
+    return node;
+  }
+
   function authHeaders(ctx) {
     return { 'Content-Type': 'application/json', 'X-Chronos-Key': keyOf(ctx) };
   }
@@ -144,12 +226,13 @@
     var doc = (container && container.ownerDocument) || (typeof document !== 'undefined' ? document : null);
     if (!doc || !container) return null;
 
-    var screen = el(doc, 'section', 'chronos-screen chronos-settings');
+    var screen = el(doc, 'section', 'chronos-screen chronos-settings screen');
     screen.setAttribute('data-screen', 'settings');
 
     screen.appendChild(el(doc, 'h2', 'chronos-screen-title', 'Settings'));
+    screen.appendChild(el(doc, 'p', 'sub', 'Offline-first — server calls happen only when you click.'));
 
-    var banner = el(doc, 'div', 'chronos-banner');
+    var banner = polish(el(doc, 'div', 'chronos-banner status'), 'banner');
     banner.setAttribute('data-part', 'banner');
     banner.hidden = true;
     screen.appendChild(banner);
@@ -164,36 +247,38 @@
     }
 
     // ---- 1. Server ----
-    screen.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Server'));
-    var srvRow = el(doc, 'div', 'chronos-row');
-    var urlInput = el(doc, 'input', 'chronos-server-url');
+    var srvCard = el(doc, 'div', 'card');
+    srvCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Server'));
+    var srvRow = el(doc, 'div', 'chronos-row row');
+    var urlInput = polish(el(doc, 'input', 'chronos-server-url'), 'field');
     urlInput.type = 'text';
     urlInput.setAttribute('data-action', 'settings-server-url');
     urlInput.placeholder = 'http://127.0.0.1:8080';
     try { urlInput.value = serverUrlOf(ctx); } catch (_) { /* ignore */ }
-    var keyInput = el(doc, 'input', 'chronos-server-key');
+    var keyInput = polish(el(doc, 'input', 'chronos-server-key'), 'field');
     keyInput.type = 'password';
     keyInput.setAttribute('data-action', 'settings-server-key');
     keyInput.placeholder = 'Instance key (stored locally)';
     keyInput.autocomplete = 'off';
     try { keyInput.value = keyOf(ctx); } catch (_) { /* ignore */ }
-    var saveBtn = el(doc, 'button', 'chronos-btn', 'Save');
+    var saveBtn = polish(el(doc, 'button', 'chronos-btn btn primary', 'Save'), 'primary');
     saveBtn.type = 'button';
     saveBtn.setAttribute('data-action', 'settings-save');
-    var healthBtn = el(doc, 'button', 'chronos-btn', 'Check health');
+    var healthBtn = el(doc, 'button', 'chronos-btn btn', 'Check health');
     healthBtn.type = 'button';
     healthBtn.setAttribute('data-action', 'settings-health');
     srvRow.appendChild(urlInput);
     srvRow.appendChild(keyInput);
     srvRow.appendChild(saveBtn);
     srvRow.appendChild(healthBtn);
-    screen.appendChild(srvRow);
+    srvCard.appendChild(srvRow);
 
-    var healthBanner = el(doc, 'div', 'chronos-health');
+    var healthBanner = el(doc, 'div', 'chronos-health status');
     healthBanner.setAttribute('data-part', 'health');
     healthBanner.setAttribute('role', 'status');
     healthBanner.textContent = 'Health not checked yet.';
-    screen.appendChild(healthBanner);
+    srvCard.appendChild(healthBanner);
+    screen.appendChild(srvCard);
 
     saveBtn.addEventListener('click', function () {
       hideBanner();
@@ -241,41 +326,42 @@
     });
 
     // ---- 2. Providers ----
-    screen.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Providers'));
-    var provControls = el(doc, 'div', 'chronos-row');
-    var provRefresh = el(doc, 'button', 'chronos-btn', 'Refresh providers');
+    var provCard = el(doc, 'div', 'card');
+    provCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Providers'));
+    var provControls = el(doc, 'div', 'chronos-row row');
+    var provRefresh = el(doc, 'button', 'chronos-btn btn', 'Refresh providers');
     provRefresh.type = 'button';
     provRefresh.setAttribute('data-action', 'providers-refresh');
     provControls.appendChild(provRefresh);
-    screen.appendChild(provControls);
+    provCard.appendChild(provControls);
 
-    var provList = el(doc, 'div', 'chronos-providers');
+    var provList = el(doc, 'div', 'chronos-providers status');
     provList.setAttribute('data-part', 'providers-list');
     provList.textContent = 'Press “Refresh providers”. (No server calls until you do.)';
-    screen.appendChild(provList);
+    provCard.appendChild(provList);
 
-    var addForm = el(doc, 'form', 'chronos-row');
+    var addForm = el(doc, 'form', 'chronos-row row');
     addForm.setAttribute('data-action', 'provider-add-form');
-    var groupSel = el(doc, 'select', 'chronos-provider-group');
+    var groupSel = polish(el(doc, 'select', 'chronos-provider-group'), 'field');
     groupSel.setAttribute('data-action', 'provider-group');
     ['stt', 'text', 'embeddings'].forEach(function (g) {
       var opt = el(doc, 'option', null, g);
       opt.value = g;
       groupSel.appendChild(opt);
     });
-    var nameInput = el(doc, 'input', 'chronos-provider-name');
+    var nameInput = polish(el(doc, 'input', 'chronos-provider-name'), 'field');
     nameInput.type = 'text';
     nameInput.placeholder = 'Name';
     nameInput.setAttribute('data-action', 'provider-name');
-    var urlInputP = el(doc, 'input', 'chronos-provider-url');
+    var urlInputP = polish(el(doc, 'input', 'chronos-provider-url'), 'field');
     urlInputP.type = 'text';
     urlInputP.placeholder = 'Base URL';
     urlInputP.setAttribute('data-action', 'provider-url');
-    var modelInput = el(doc, 'input', 'chronos-provider-model');
+    var modelInput = polish(el(doc, 'input', 'chronos-provider-model'), 'field');
     modelInput.type = 'text';
     modelInput.placeholder = 'Model (optional)';
     modelInput.setAttribute('data-action', 'provider-model');
-    var addBtn = el(doc, 'button', 'chronos-btn', 'Add provider');
+    var addBtn = polish(el(doc, 'button', 'chronos-btn btn primary', 'Add provider'), 'primary');
     addBtn.type = 'submit';
     addBtn.setAttribute('data-action', 'provider-add');
     addForm.appendChild(groupSel);
@@ -283,7 +369,8 @@
     addForm.appendChild(urlInputP);
     addForm.appendChild(modelInput);
     addForm.appendChild(addBtn);
-    screen.appendChild(addForm);
+    provCard.appendChild(addForm);
+    screen.appendChild(provCard);
 
     function keyIdsOf(entry) {
       if (entry.key_ids && typeof entry.key_ids.length === 'number') return entry.key_ids;
@@ -305,7 +392,7 @@
         any = true;
         provList.appendChild(el(doc, 'h4', 'chronos-provider-group-title', g));
         entries.forEach(function (entry, idx) {
-          var card = el(doc, 'div', 'chronos-provider');
+          var card = el(doc, 'div', 'chronos-provider card');
           card.setAttribute('data-provider-id', String(entry.id));
           card.setAttribute('data-provider-group', g);
           var title = el(doc, 'span', 'chronos-provider-name',
@@ -313,25 +400,25 @@
           card.appendChild(title);
           // Key ids only — VALUES are never rendered.
           var kids = keyIdsOf(entry);
-          var kWrap = el(doc, 'span', 'chronos-provider-keys',
+          var kWrap = el(doc, 'span', 'chronos-provider-keys tag-chip',
             'keys: ' + (kids.length ? kids.join(', ') : 'none'));
           card.appendChild(kWrap);
 
-          var upBtn = el(doc, 'button', 'chronos-btn', 'Up');
+          var upBtn = el(doc, 'button', 'chronos-btn btn', 'Up');
           upBtn.type = 'button';
           upBtn.setAttribute('data-action', 'provider-up');
           upBtn.disabled = idx === 0;
           upBtn.addEventListener('click', function () {
             moveProvider(g, entry, idx, idx - 1);
           });
-          var downBtn = el(doc, 'button', 'chronos-btn', 'Down');
+          var downBtn = el(doc, 'button', 'chronos-btn btn', 'Down');
           downBtn.type = 'button';
           downBtn.setAttribute('data-action', 'provider-down');
           downBtn.disabled = idx === entries.length - 1;
           downBtn.addEventListener('click', function () {
             moveProvider(g, entry, idx, idx + 1);
           });
-          var delBtn = el(doc, 'button', 'chronos-btn', 'Delete');
+          var delBtn = el(doc, 'button', 'chronos-btn btn', 'Delete');
           delBtn.type = 'button';
           delBtn.setAttribute('data-action', 'provider-delete');
           delBtn.addEventListener('click', function () {
@@ -342,14 +429,14 @@
           card.appendChild(delBtn);
 
           // Add-key form: value POSTed once, input cleared, never displayed.
-          var kForm = el(doc, 'form', 'chronos-row');
+          var kForm = el(doc, 'form', 'chronos-row row');
           kForm.setAttribute('data-action', 'provider-key-form');
-          var kInput = el(doc, 'input', 'chronos-provider-key-value');
+          var kInput = polish(el(doc, 'input', 'chronos-provider-key-value'), 'field');
           kInput.type = 'password';
           kInput.placeholder = 'New key value (write-only)';
           kInput.autocomplete = 'off';
           kInput.setAttribute('data-action', 'provider-key-value');
-          var kAdd = el(doc, 'button', 'chronos-btn', 'Add key');
+          var kAdd = el(doc, 'button', 'chronos-btn btn', 'Add key');
           kAdd.type = 'submit';
           kAdd.setAttribute('data-action', 'provider-key-add');
           kForm.appendChild(kInput);
@@ -362,7 +449,7 @@
 
           // Delete-key buttons (ids only).
           kids.forEach(function (kid) {
-            var kd = el(doc, 'button', 'chronos-btn', 'Del key ' + kid);
+            var kd = el(doc, 'button', 'chronos-btn btn', 'Del key ' + kid);
             kd.type = 'button';
             kd.setAttribute('data-action', 'provider-key-delete');
             kd.setAttribute('data-key-id', String(kid));
@@ -570,9 +657,10 @@
     });
 
     // ---- 3. Autostart ----
-    screen.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Autostart'));
-    var autoRow = el(doc, 'label', 'chronos-row');
-    var autoToggle = el(doc, 'input', 'chronos-autostart');
+    var autoCard = el(doc, 'div', 'card');
+    autoCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Autostart'));
+    var autoRow = polish(el(doc, 'label', 'chronos-row check'), 'pill');
+    var autoToggle = polish(el(doc, 'input', 'chronos-autostart'), 'check');
     autoToggle.type = 'checkbox';
     autoToggle.setAttribute('data-action', 'settings-autostart');
     try {
@@ -580,11 +668,13 @@
     } catch (_) { /* ignore */ }
     autoRow.appendChild(autoToggle);
     autoRow.appendChild(el(doc, 'span', null, 'Start Chronos on login'));
-    screen.appendChild(autoRow);
-    var autoStatus = el(doc, 'div', 'chronos-autostart-status');
+    autoCard.appendChild(autoRow);
+    var autoStatus = el(doc, 'div', 'chronos-autostart-status status');
     autoStatus.setAttribute('data-part', 'autostart-status');
     autoStatus.setAttribute('role', 'status');
-    screen.appendChild(autoStatus);
+    autoStatus.textContent = 'Autostart preference loads locally; no system change until toggled.';
+    autoCard.appendChild(autoStatus);
+    screen.appendChild(autoCard);
 
     // IPC touch happens HERE at click-time only — never at import/mount.
     autoToggle.addEventListener('click', function () {
@@ -605,11 +695,12 @@
     });
 
     // ---- 4. Notification toggles ----
-    screen.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Notifications'));
+    var notifCard = el(doc, 'div', 'card');
+    notifCard.appendChild(el(doc, 'h3', 'chronos-sub-title', 'Notifications'));
     var notifToggles = {};
     NOTIFY_CATS.forEach(function (cat) {
-      var row = el(doc, 'label', 'chronos-row');
-      var t = el(doc, 'input', 'chronos-notif-toggle');
+      var row = polish(el(doc, 'label', 'chronos-row check'), 'pill');
+      var t = polish(el(doc, 'input', 'chronos-notif-toggle'), 'check');
       t.type = 'checkbox';
       t.setAttribute('data-action', 'settings-notif-' + cat);
       t.setAttribute('data-category', cat);
@@ -618,15 +709,22 @@
       } catch (_) { /* ignore */ }
       row.appendChild(t);
       row.appendChild(el(doc, 'span', null, cat));
-      screen.appendChild(row);
+      notifCard.appendChild(row);
       notifToggles[cat] = t;
       t.addEventListener('click', function () {
         var on = true;
         try { on = !!t.checked; } catch (_) { on = true; }
         try { storageSet('chronos.notify.' + cat, on ? 'on' : 'off'); } catch (_) { /* ignore */ }
-        safeNotify('Chronos settings', 'Notifications for ' + cat + ' ' + (on ? 'on' : 'off') + '.');
+        safeNotify('Notification Settings', 'Your ' + cat + ' alerts are ' + (on ? 'on' : 'off') +
+          ', sir — ' + (on ? "I'll keep you posted." : 'standing by in silence.'));
       });
     });
+
+    screen.appendChild(notifCard);
+
+    var aiCard = el(doc, 'div', 'card');
+    aiCard.appendChild(el(doc, 'h3', null, 'Ask Chronos'));
+    screen.appendChild(aiCard);
 
     container.appendChild(screen);
 
@@ -636,7 +734,7 @@
         (typeof globalThis !== 'undefined' && globalThis.ChronosAiRow &&
          typeof globalThis.ChronosAiRow.mountAiRow === 'function'
           ? globalThis.ChronosAiRow.mountAiRow : null);
-      if (m) aiRow = m(screen, ctx);
+      if (m) aiRow = m(aiCard, ctx);
     } catch (_) {
       aiRow = null;
     }
