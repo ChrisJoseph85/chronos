@@ -29,9 +29,9 @@ class SettingsFragment : ScopedFragment() {
     private lateinit var urlInput: EditText
     private lateinit var keyInput: EditText
     private lateinit var portInput: EditText
-    private lateinit var blockInput: EditText
     private lateinit var status: TextView
     private lateinit var providerBody: android.widget.LinearLayout
+    private lateinit var blockBody: android.widget.LinearLayout
     private var scanning = false
     private var cancelled = false
 
@@ -39,42 +39,46 @@ class SettingsFragment : ScopedFragment() {
         val app = requireActivity().application as ChronosApp
         val p = app.prefs
         return col(requireContext()) {
-            title("Settings")
-            urlInput = edit("server URL", p.serverUrl)
-            keyInput = edit("instance key", "").apply {
+            title(UiStrings.SETTINGS)
+            urlInput = edit(UiStrings.HINT_SERVER_URL, p.serverUrl)
+            keyInput = edit(UiStrings.HINT_INSTANCE_KEY, "").apply {
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                hint = if (p.apiKey.isEmpty()) "instance key" else "key saved (enter to replace)"
+                hint = if (p.apiKey.isEmpty()) UiStrings.HINT_INSTANCE_KEY else "Key Saved (Enter To Replace)"
             }
-            portInput = edit("port", p.port.toString())
+            portInput = edit(UiStrings.HINT_PORT, p.port.toString())
             status = text("")
-            btn(if (!scanning) "Auto-find server" else "Cancel scan") { toggleScan() }
-            btn("Save") {
+            btn(if (!scanning) UiStrings.AUTO_FIND else UiStrings.CANCEL_SCAN) { toggleScan() }
+            btn(UiStrings.SAVE) {
                 val port = portInput.text.toString().toIntOrNull() ?: 693
                 p.serverUrl = urlInput.text.toString().trim()
                 val k = keyInput.text.toString()
                 if (k.isNotEmpty()) p.apiKey = k // saved key only; never used at scan time
                 p.port = port
-                p.blocklist = blockInput.text.toString().split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-                status.text = "saved"
+                status.text = "Saved"
             }
-            title("Focus shield")
+            title(UiStrings.FOCUS_SHIELD)
             text(ShieldLogic.RATIONALE)
             if (!ShieldWatch.hasUsageAccess(requireContext())) {
-                btn("Grant usage access (tripwire only)") {
+                btn("Grant Usage Access (Tripwire Only)") {
                     startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                 }
             } else {
-                text("usage access granted")
+                text("Usage Access Granted")
             }
-            blockInput = edit("blocklist (comma packages)", p.blocklist.joinToString(","))
-            title("Providers (keys never displayed)")
+            title(UiStrings.BLOCKED_APPS)
+            text("Checked Apps Trigger The Shield Tripwire")
+            blockBody = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+            }
+            addView(blockBody)
+            title("Providers (Keys Never Displayed)")
             providerBody = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
             }
             addView(providerBody)
             row(
                 android.widget.Button(context).apply {
-                    text = "Reload"
+                    text = UiStrings.RELOAD
                     setOnClickListener { loadProviders() }
                 },
             )
@@ -84,6 +88,51 @@ class SettingsFragment : ScopedFragment() {
     override fun onResume() {
         super.onResume()
         loadProviders()
+        loadBlockedApps()
+    }
+
+    /** Visual multi-select list of launchable apps, persisted to prefs.blocklist. */
+    private fun loadBlockedApps() {
+        val act = activity as? MainActivity ?: return
+        val app = act.application as ChronosApp
+        scope.launch {
+            val entries = withContext(Dispatchers.IO) {
+                BlockedApps.sort(BlockedApps.queryLaunchable(requireContext().packageManager))
+            }
+            if (!isAdded) return@launch
+            blockBody.removeAllViews()
+            if (entries.isEmpty()) {
+                blockBody.addView(TextView(context).apply { text = UiStrings.EMPTY })
+                return@launch
+            }
+            var blocked = app.prefs.blocklist
+            for (e in entries) {
+                val rowView = android.widget.LinearLayout(context).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                }
+                val icon = android.widget.ImageView(context).apply {
+                    layoutParams = android.widget.LinearLayout.LayoutParams(96, 96)
+                    try {
+                        setImageDrawable(e.icon)
+                    } catch (_: Exception) {
+                    }
+                }
+                val check = android.widget.CheckBox(context).apply {
+                    text = e.label
+                    isChecked = blocked.contains(e.packageName)
+                    setOnCheckedChangeListener { _, on ->
+                        blocked = BlockedApps.toggle(blocked, e.packageName).let {
+                            if (on) it + e.packageName else it - e.packageName
+                        }
+                        // Persisted to prefs, consumed by the shield tripwire.
+                        app.prefs.blocklist = blocked
+                    }
+                }
+                rowView.addView(icon)
+                rowView.addView(check)
+                blockBody.addView(rowView)
+            }
+        }
     }
 
     private fun toggleScan() {
@@ -96,13 +145,13 @@ class SettingsFragment : ScopedFragment() {
         // §9: scan authenticates with the SAVED key only — never the text field.
         val savedKey = app.prefs.apiKey
         if (savedKey.isEmpty()) {
-            status.text = "save the instance key first (scan uses the saved key only)"
+            status.text = "Save The Instance Key First (Scan Uses The Saved Key Only)"
             return
         }
         val port = portInput.text.toString().toIntOrNull() ?: 693
         scanning = true
         cancelled = false
-        status.text = "scanning…"
+        status.text = "Scanning…"
         scope.launch {
             val localIp = withContext(Dispatchers.IO) { deviceIp() }
             val client = OkHttpClient.Builder()
@@ -131,18 +180,18 @@ class SettingsFragment : ScopedFragment() {
                 Discovery(port).scan(
                     localIp, savedKey, probe,
                     isCancelled = { cancelled },
-                    onProgress = { host -> launch { if (isAdded) status.text = "trying $host…" } },
+                    onProgress = { host -> launch { if (isAdded) status.text = "Trying $host…" } },
                 )
             }
             scanning = false
             if (!isAdded) return@launch
             if (found != null) {
                 urlInput.setText(found)
-                status.text = "found $found (URL filled — Save to keep)"
+                status.text = "Found $found (URL Filled — Save To Keep)"
             } else if (cancelled) {
-                status.text = "scan cancelled"
+                status.text = "Scan Cancelled"
             } else {
-                status.text = "no server found"
+                status.text = "No Server Found"
             }
         }
     }
@@ -188,10 +237,10 @@ class SettingsFragment : ScopedFragment() {
                         )
                         r.addView(
                             android.widget.Button(context).apply {
-                                text = "+key"
+                                text = "+Key"
                                 setOnClickListener {
                                     if (!act.blockedWrite()) {
-                                        val v = android.widget.EditText(context).apply { hint = "paste key (sent once, never shown)" }
+                                        val v = android.widget.EditText(context).apply { hint = "Paste Key (Sent Once, Never Shown)" }
                                         providerBody.addView(v)
                                         v.setOnEditorActionListener { _, _, _ ->
                                             scope.launch {

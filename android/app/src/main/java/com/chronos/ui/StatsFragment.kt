@@ -24,12 +24,12 @@ class StatsFragment : ScopedFragment() {
 
     override fun onCreateView(inf: LayoutInflater, ctn: ViewGroup?, st: Bundle?): View {
         return col(requireContext()) {
-            title("Stats")
+            title(UiStrings.STATS)
             body = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
             }
             addView(body)
-            btn("Top level") {
+            btn(UiStrings.TOP_LEVEL) {
                 drillNode = null
                 drillTitle = ""
                 load()
@@ -50,17 +50,17 @@ class StatsFragment : ScopedFragment() {
             body.removeAllViews()
             try {
                 val s = withContext(Dispatchers.IO) { app.api().timerSummary(drillNode) }
-                body.addView(TextView(context).apply { text = "total: ${formatHms(s.project_total_ms)}" })
-                body.addView(TextView(context).apply { text = "descendants: ${formatHms(s.descendant_total_ms)}" })
+                body.addView(TextView(context).apply { text = "Total: ${formatHms(s.project_total_ms)}" })
+                body.addView(TextView(context).apply { text = "Descendants: ${formatHms(s.descendant_total_ms)}" })
             } catch (_: Exception) {
-                body.addView(TextView(context).apply { text = "(summary unavailable)" })
+                body.addView(TextView(context).apply { text = "(Summary Unavailable)" })
             }
             val from = LocalDate.now().minusDays(30).toString()
             val to = LocalDate.now().plusDays(1).toString()
             try {
                 val items = withContext(Dispatchers.IO) { app.api().breakdown(drillNode, from, to) }
                 if (drillTitle.isNotEmpty()) {
-                    body.addView(TextView(context).apply { text = "drill: $drillTitle"; textSize = 16f })
+                    body.addView(TextView(context).apply { text = "Drill: $drillTitle"; textSize = 16f })
                 }
                 for (item in items) {
                     body.addView(
@@ -75,9 +75,9 @@ class StatsFragment : ScopedFragment() {
                     )
                 }
             } catch (e: com.chronos.api.ServerTooOld) {
-                body.addView(TextView(context).apply { text = "server too old — update server for breakdown" })
+                body.addView(TextView(context).apply { text = "Server Too Old — Update Server For Breakdown" })
             } catch (_: Exception) {
-                body.addView(TextView(context).apply { text = "(breakdown unavailable)" })
+                body.addView(TextView(context).apply { text = "(Breakdown Unavailable)" })
             }
         }
     }

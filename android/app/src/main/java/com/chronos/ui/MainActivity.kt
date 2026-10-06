@@ -69,6 +69,8 @@ class MainActivity : AppCompatActivity(), WsClient.Listener {
         voice.onVoiceError = { toast(it) }
 
         val nav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        // Uniform label visibility: ALL 5 labels always visible.
+        nav.labelVisibilityMode = UiPolicy.NAV_LABEL_MODE
         nav.menu.clear()
         menuInflater.inflate(R.menu.bottom_nav, nav.menu)
         // Enforce the 5-tab limit even if the menu XML ever grows: extra
@@ -107,7 +109,7 @@ class MainActivity : AppCompatActivity(), WsClient.Listener {
     fun ws(): WsClient = (application as ChronosApp).ws.also { it.listener = this }
 
     fun blockedWrite(): Boolean {
-        if (readOnly) toast("server is down — writes blocked")
+        if (readOnly) toast("Server Is Down — Writes Blocked")
         return readOnly
     }
 
@@ -138,15 +140,15 @@ class MainActivity : AppCompatActivity(), WsClient.Listener {
     private fun checkHealth() {
         val app = application as ChronosApp
         if (app.prefs.serverUrl.isEmpty() || app.prefs.apiKey.isEmpty()) {
-            setDown("set server URL + key in More → Settings")
+            setDown("Set Server URL + Key In More → Settings")
             return
         }
         scope.launch {
             try {
                 val h: Health = withContext(Dispatchers.IO) { app.api().health() }
-                if (h.status == "ok") setUp() else setDown("server is down")
+                if (h.status == "ok") setUp() else setDown("Server Is Down")
             } catch (_: Exception) {
-                setDown("server is down")
+                setDown("Server Is Down")
             }
         }
     }
@@ -158,7 +160,7 @@ class MainActivity : AppCompatActivity(), WsClient.Listener {
 
     private fun setDown(msg: String) {
         readOnly = true
-        banner.text = "$msg — read-only cache"
+        banner.text = "$msg — Read-Only Cache"
         banner.visibility = View.VISIBLE
     }
 

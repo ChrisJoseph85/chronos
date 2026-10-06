@@ -45,12 +45,12 @@ class HomeFragment : ScopedFragment(), MainActivity.TickListener {
         engine = TimerEngine(prefs, app.api(), SystemClock())
 
         return col(requireContext()) {
-            title("Timer")
+            title(UiStrings.TIMER)
 
             val modes = RadioGroup(context).apply { orientation = RadioGroup.HORIZONTAL }
-            val rbS = RadioButton(context).apply { text = "stopwatch"; id = View.generateViewId() }
-            val rbC = RadioButton(context).apply { text = "countdown"; id = View.generateViewId() }
-            val rbP = RadioButton(context).apply { text = "pomodoro"; id = View.generateViewId() }
+            val rbS = RadioButton(context).apply { text = UiStrings.STOPWATCH; id = View.generateViewId() }
+            val rbC = RadioButton(context).apply { text = UiStrings.COUNTDOWN; id = View.generateViewId() }
+            val rbP = RadioButton(context).apply { text = UiStrings.POMODORO; id = View.generateViewId() }
             modes.addView(rbS)
             modes.addView(rbC)
             modes.addView(rbP)
@@ -75,31 +75,31 @@ class HomeFragment : ScopedFragment(), MainActivity.TickListener {
                 }
             }
 
-            durationInput = edit("countdown minutes", "25").apply {
+            durationInput = edit(UiStrings.HINT_COUNTDOWN_MINUTES, "25").apply {
                 visibility = if (engine.mode == TimerMode.COUNTDOWN) View.VISIBLE else View.GONE
             }
-            labelInput = edit("label (optional)")
-            targetInput = edit("target node id (optional)")
+            labelInput = edit(UiStrings.HINT_LABEL_OPTIONAL)
+            targetInput = edit(UiStrings.HINT_TARGET_NODE)
             presetRow = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
                 visibility = if (engine.mode == TimerMode.POMODORO) View.VISIBLE else View.GONE
             }
             addView(presetRow)
 
-            switchRow("strict shield (default ON)", prefs.strictShield) {
+            switchRow(UiStrings.STRICT_SHIELD, prefs.strictShield) {
                 prefs.strictShield = it
             }
 
-            elapsedText = text("idle").apply { textSize = 28f }
+            elapsedText = text("Idle").apply { textSize = 28f }
             statusText = text("")
 
             row(
                 android.widget.Button(context).apply {
-                    text = "Start"
+                    text = UiStrings.START
                     setOnClickListener { start() }
                 },
                 android.widget.Button(context).apply {
-                    text = "End"
+                    text = UiStrings.END
                     setOnClickListener { stop() }
                 },
             )
@@ -128,7 +128,7 @@ class HomeFragment : ScopedFragment(), MainActivity.TickListener {
                             text = "${p.focusMin}/${p.breakMin}x${p.cycles}"
                             setOnClickListener {
                                 engine.pomodoro = p
-                                statusText.text = "preset ${p.focusMin}/${p.breakMin}x${p.cycles}"
+                                statusText.text = "Preset ${p.focusMin}/${p.breakMin}x${p.cycles}"
                             }
                         },
                     )
@@ -144,7 +144,7 @@ class HomeFragment : ScopedFragment(), MainActivity.TickListener {
         val mins = durationInput.text.toString().toIntOrNull()
         if (engine.mode == TimerMode.COUNTDOWN) {
             if (mins == null || mins <= 0) {
-                statusText.text = "set a duration first"
+                statusText.text = "Set A Duration First"
                 return
             }
             engine.countdownDurationMs = mins * 60_000L
@@ -201,7 +201,7 @@ class HomeFragment : ScopedFragment(), MainActivity.TickListener {
         elapsedText.text = if (running) {
             if (remainingMs != null) "${formatHms(displayMs)}  (${formatMs(remainingMs)} left)"
             else formatHms(displayMs)
-        } else "idle"
+        } else "Idle"
         if (label.isNotEmpty()) elapsedText.text = "$label — ${elapsedText.text}"
         if (status.isNotEmpty()) statusText.text = status
     }

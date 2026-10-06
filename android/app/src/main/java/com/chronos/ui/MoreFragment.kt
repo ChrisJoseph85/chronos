@@ -10,10 +10,10 @@ class MoreFragment : ScopedFragment() {
     override fun onCreateView(inf: LayoutInflater, ctn: ViewGroup?, st: Bundle?): View {
         val act = activity as MainActivity
         return col(requireContext()) {
-            title("More")
-            btn("Projects") { act.open(ProjectsFragment()) }
-            btn("Stats") { act.open(StatsFragment()) }
-            btn("Settings") { act.open(SettingsFragment()) }
+            title(UiStrings.MORE)
+            btn(UiStrings.PROJECTS) { act.open(ProjectsFragment()) }
+            btn(UiStrings.STATS) { act.open(StatsFragment()) }
+            btn(UiStrings.SETTINGS) { act.open(SettingsFragment()) }
         }
     }
 }

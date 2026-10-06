@@ -47,7 +47,7 @@ open class TreeFragment : ScopedFragment() {
             if (!isAdded) return@launch
             if (depth == 0) list.removeAllViews()
             if (nodes.isEmpty() && depth == 0) {
-                list.addView(TextView(context).apply { text = "(empty)" })
+                list.addView(TextView(context).apply { text = UiStrings.EMPTY })
             }
             for (n in nodes) {
                 val indent = "  ".repeat(depth)
@@ -80,7 +80,7 @@ open class TreeFragment : ScopedFragment() {
                 list.addView(
                     TextView(context).apply {
                         text = "$indent• ${k.title} [${k.kind}]$tags"
-                        setOnClickListener { act.voicePrefill("log time on ${k.title} ") }
+                        setOnClickListener { act.voicePrefill("Log Time On ${k.title} ") }
                     },
                 )
             }

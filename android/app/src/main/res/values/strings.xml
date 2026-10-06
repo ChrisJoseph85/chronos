@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Chronos</string>
-    <string name="server_down">server is down — read-only cache</string>
-    <string name="shield_rationale">used only to detect a blocked app opening; no usage statistics are collected, stored, or sent anywhere.</string>
+    <string name="server_down">Server Is Down — Read-Only Cache</string>
+    <string name="shield_rationale">Used only to detect a blocked app opening; no usage statistics are collected, stored, or sent anywhere.</string>
+    <!-- Centralized user-visible labels (mirrors UiStrings; all capitalized). -->
+    <string name="label_home">Home</string>
+    <string name="label_calendar">Calendar</string>
+    <string name="label_tasks">Tasks</string>
+    <string name="label_briefing">Briefing</string>
+    <string name="label_more">More</string>
+    <string name="label_start">Start</string>
+    <string name="label_stop">Stop</string>
+    <string name="label_find_free_time">Find Free Time</string>
+    <string name="label_today">Today</string>
+    <string name="label_blocked_apps">Blocked Apps</string>
+    <string-array name="weekday_headers">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
+    </string-array>
 </resources>

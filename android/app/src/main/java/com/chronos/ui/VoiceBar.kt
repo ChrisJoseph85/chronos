@@ -44,15 +44,16 @@ class VoiceBar @JvmOverloads constructor(
         orientation = VERTICAL
         val row = LinearLayout(ctx).apply { orientation = HORIZONTAL }
         input = EditText(ctx).apply {
-            hint = "say something…"
+            hint = UiStrings.HINT_SAY
             layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
         }
-        val mic = Button(ctx).apply {
-            text = "mic"
+        val mic = android.widget.ImageButton(ctx).apply {
+            setImageResource(android.R.drawable.ic_btn_speak_now)
+            contentDescription = "Record Voice"
             setOnClickListener { toggleMic() }
         }
         val send = Button(ctx).apply {
-            text = "send"
+            text = UiStrings.SEND
             setOnClickListener { say() }
         }
         row.addView(input)
@@ -65,9 +66,9 @@ class VoiceBar @JvmOverloads constructor(
         }
         cardText = TextView(ctx)
         val btnRow = LinearLayout(ctx).apply { orientation = HORIZONTAL }
-        val accept = Button(ctx).apply { text = "accept"; setOnClickListener { verdict("accept") } }
-        val reject = Button(ctx).apply { text = "reject"; setOnClickListener { verdict("reject") } }
-        val skip = Button(ctx).apply { text = "skip"; setOnClickListener { verdict("skip") } }
+        val accept = Button(ctx).apply { text = UiStrings.ACCEPT; setOnClickListener { verdict("accept") } }
+        val reject = Button(ctx).apply { text = UiStrings.REJECT; setOnClickListener { verdict("reject") } }
+        val skip = Button(ctx).apply { text = UiStrings.SKIP; setOnClickListener { verdict("skip") } }
         btnRow.addView(accept)
         btnRow.addView(reject)
         btnRow.addView(skip)
@@ -89,7 +90,7 @@ class VoiceBar @JvmOverloads constructor(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) !=
                 PackageManager.PERMISSION_GRANTED
             ) {
-                onVoiceError("mic permission needed")
+                onVoiceError("Mic Permission Needed")
                 return
             }
             startRecording()
@@ -109,7 +110,7 @@ class VoiceBar @JvmOverloads constructor(
                 start()
             }
         } catch (e: Exception) {
-            onVoiceError("mic failed: ${e.message}")
+            onVoiceError("Mic Failed: ${e.message}")
             recording = true // so toggle flips back
         }
     }
@@ -128,7 +129,7 @@ class VoiceBar @JvmOverloads constructor(
                     val t = withContext(Dispatchers.IO) { app().api().voice(f.readBytes()) }
                     input.setText((input.text.toString() + " " + t).trim())
                 } catch (e: Exception) {
-                    onVoiceError("voice upload failed")
+                    onVoiceError("Voice Upload Failed")
                 } finally {
                     f.delete()
                 }
@@ -144,7 +145,7 @@ class VoiceBar @JvmOverloads constructor(
                 val r = withContext(Dispatchers.IO) { app().api().say(text) }
                 if (r.committed) {
                     input.setText("")
-                    onVoiceError(r.message.ifEmpty { "done" })
+                    onVoiceError(r.message.ifEmpty { "Done" })
                 } else {
                     val p = r.proposal
                     proposalId = r.proposal_id ?: p?.proposal_id
@@ -153,13 +154,13 @@ class VoiceBar @JvmOverloads constructor(
                         showCard("Q: ${r.question.text}")
                         proposalId = null
                     } else if (id != null) {
-                        showCard(p?.summary ?: r.message.ifEmpty { "proposal $id" })
+                        showCard(p?.summary ?: r.message.ifEmpty { "Proposal $id" })
                     } else {
-                        onVoiceError(r.message.ifEmpty { "no proposal" })
+                        onVoiceError(r.message.ifEmpty { "No Proposal" })
                     }
                 }
             } catch (e: Exception) {
-                onVoiceError("say failed")
+                onVoiceError("Say Failed")
             }
         }
     }

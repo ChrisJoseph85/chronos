@@ -11,6 +11,8 @@
     <!-- UsageStats is a special-access setting, not a runtime permission.
          Used ONLY as a blocked-app tripwire while a session runs. -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+    <!-- Blocked-apps picker lists launchable apps (PackageManager query). -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:name="com.chronos.ChronosApp"

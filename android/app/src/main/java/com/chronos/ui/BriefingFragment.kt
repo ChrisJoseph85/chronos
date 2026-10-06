@@ -20,9 +20,9 @@ class BriefingFragment : ScopedFragment() {
 
     override fun onCreateView(inf: LayoutInflater, ctn: ViewGroup?, st: Bundle?): View {
         return col(requireContext()) {
-            title("Briefing")
-            dateInput = edit("date YYYY-MM-DD", LocalDate.now().toString())
-            btn("Load") { load() }
+            title(UiStrings.BRIEFING)
+            dateInput = edit(UiStrings.HINT_DATE, LocalDate.now().toString())
+            btn(UiStrings.LOAD) { load() }
             body = android.widget.LinearLayout(context).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
             }
@@ -48,7 +48,7 @@ class BriefingFragment : ScopedFragment() {
             if (!isAdded) return@launch
             body.removeAllViews()
             if (b == null) {
-                body.addView(TextView(context).apply { text = "(unavailable offline)" })
+                body.addView(TextView(context).apply { text = UiStrings.UNAVAILABLE_OFFLINE })
                 return@launch
             }
             body.addView(TextView(context).apply { text = "Rollover:"; textSize = 16f })
@@ -64,7 +64,7 @@ class BriefingFragment : ScopedFragment() {
                 val r = android.widget.LinearLayout(context).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
                 r.addView(
                     android.widget.Button(context).apply {
-                        text = "accept"
+                        text = UiStrings.ACCEPT
                         setOnClickListener {
                             if (!act.blockedWrite()) app.ws.accept(q.id)
                         }
@@ -72,7 +72,7 @@ class BriefingFragment : ScopedFragment() {
                 )
                 r.addView(
                     android.widget.Button(context).apply {
-                        text = "skip"
+                        text = UiStrings.SKIP
                         setOnClickListener { app.ws.skip(q.id) }
                     },
                 )
