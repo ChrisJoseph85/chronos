@@ -29,6 +29,23 @@ X-GNOME-Autostart-enabled=true
 EOF
 echo "[install] wrote ${HOME}/.config/autostart/chronos-desktop.desktop"
 
+# Launcher entry: autostart/ is executed at login but never indexed by app
+# launchers — without this file the app is invisible in wofi/rofi/menus.
+mkdir -p "${HOME}/.local/share/applications"
+cat > "${HOME}/.local/share/applications/chronos-desktop.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Chronos Desktop
+Comment=Chronos timer/planner bar (Omarchy/Hyprland)
+Exec=${VENV}/bin/chronos-desktop
+Terminal=false
+Categories=Utility;
+EOF
+echo "[install] wrote ${HOME}/.local/share/applications/chronos-desktop.desktop"
+command -v update-desktop-database >/dev/null 2>&1 \
+  && update-desktop-database "${HOME}/.local/share/applications" \
+  || true
+
 cat <<'EOF'
 [install] Optional Hyprland bits — apply manually, installer never edits hypr/:
 
