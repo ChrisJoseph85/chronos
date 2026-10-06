@@ -12,3 +12,6 @@ web/release/
 app-electron/node_modules/
 app-electron/release/
 app-electron/dist/
+app2/node_modules/
+app2/release/
+app2/dist/
